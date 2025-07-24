@@ -3,7 +3,15 @@
   "name": "card-accounting-system",
   "builds": [
     {
-      "src": "index.html",
+      "src": "*.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.css",
       "use": "@vercel/static"
     }
   ],
@@ -13,12 +21,28 @@
       "dest": "/index.html"
     },
     {
+      "src": "/archive.html",
+      "dest": "/archive.html"
+    },
+    {
       "src": "/archive",
       "dest": "/archive.html"
     },
     {
+      "src": "/report.html",
+      "dest": "/report.html"
+    },
+    {
       "src": "/report",
       "dest": "/report.html"
+    },
+    {
+      "src": "/(.*\\.(js|css|html))",
+      "dest": "/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
