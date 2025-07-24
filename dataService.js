@@ -183,10 +183,10 @@ class DataService {
             organization: card.organization,
             account_open_date: card.accountOpenDate,
             first_deposit_date: card.firstDepositDate || null,
-            card_status: card.cardStatus,
+            card_status: this.translateCardStatusToEnglish(card.cardStatus),
             comment: card.comment || null,
             documents: card.documents,
-            account_status: card.accountStatus,
+            account_status: this.translateAccountStatusToEnglish(card.accountStatus),
             created_at: card.createdAt,
             updated_at: card.updatedAt || card.createdAt,
             archived_at: card.archivedAt || null
@@ -201,14 +201,51 @@ class DataService {
             organization: supabaseCard.organization,
             accountOpenDate: supabaseCard.account_open_date,
             firstDepositDate: supabaseCard.first_deposit_date,
-            cardStatus: supabaseCard.card_status,
+            cardStatus: this.translateCardStatusToUkrainian(supabaseCard.card_status),
             comment: supabaseCard.comment,
             documents: supabaseCard.documents,
-            accountStatus: supabaseCard.account_status,
+            accountStatus: this.translateAccountStatusToUkrainian(supabaseCard.account_status),
             createdAt: supabaseCard.created_at,
             updatedAt: supabaseCard.updated_at,
             archivedAt: supabaseCard.archived_at
         };
+    }
+
+    // Переклад статусів
+    translateCardStatusToEnglish(status) {
+        const statusMap = {
+            'Виготовляється': 'Manufacturing',
+            'На відділенні': 'At_Office',
+            'На організації': 'At_Organization',
+            'Видана': 'Issued'
+        };
+        return statusMap[status] || 'Manufacturing';
+    }
+
+    translateCardStatusToUkrainian(status) {
+        const statusMap = {
+            'Manufacturing': 'Виготовляється',
+            'At_Office': 'На відділенні',
+            'At_Organization': 'На організації',
+            'Issued': 'Видана'
+        };
+        return statusMap[status] || 'Виготовляється';
+    }
+
+    translateAccountStatusToEnglish(status) {
+        const statusMap = {
+            'Активний': 'Active',
+            'Очікує активацію': 'Pending'
+        };
+        return statusMap[status] || 'Pending';
+    }
+
+    translateAccountStatusToUkrainian(status) {
+        const statusMap = {
+            'Active': 'Активний',
+            'Pending': 'Очікує активацію'
+        };
+        return statusMap[status] || 'Очікує активацію';
     }
 
     formatCardsFromSupabase(supabaseCards) {
