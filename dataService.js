@@ -15,39 +15,48 @@ class DataService {
                 throw new Error('Supabase не ініціалізований');
             }
             
-            // Тестуємо підключення
-            await supabaseClient.from('cards').select('count');
+            // Тестуємо підключення та наявність таблиць
+            const { data, error } = await supabaseClient.from('cards').select('count').limit(1);
+            
+            if (error && error.code === 'PGRST116') {
+                throw new Error('Таблиці не створені в Supabase. Виконайте SQL з файлу supabase_tables.sql');
+            } else if (error) {
+                throw new Error(`Помилка підключення: ${error.message}`);
+            }
+            
             this.supabaseReady = true;
             console.log('✅ DataService готовий з Supabase');
             
         } catch (error) {
             console.error('❌ Критична помилка: не вдалося підключитися до Supabase:', error.message);
             this.supabaseReady = false;
-            this.showConnectionError();
+            this.showConnectionError(error.message);
         }
     }
 
-    showConnectionError() {
+    showConnectionError(errorMessage) {
         // Показуємо користувачу повідомлення про помилку
         const errorDiv = document.createElement('div');
-        errorDiv.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
+        errorDiv.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white p-6 rounded-lg shadow-lg z-50 max-w-lg';
+        
+        let message = 'Перевірте налаштування Supabase та підключення до інтернету';
+        if (errorMessage.includes('Таблиці не створені')) {
+            message = 'Потрібно створити таблиці в Supabase. Виконайте SQL з файлу supabase_tables.sql';
+        }
+        
         errorDiv.innerHTML = `
-            <div class="flex items-center">
-                <span class="mr-2">❌</span>
+            <div class="text-center">
+                <span class="text-2xl mb-2 block">❌</span>
                 <div>
-                    <strong>Помилка підключення до бази даних</strong><br>
-                    <small>Перевірте налаштування Supabase та підключення до інтернету</small>
+                    <strong class="block mb-2">Помилка бази даних</strong>
+                    <small class="block">${message}</small>
                 </div>
+                <button onclick="this.parentElement.parentElement.remove()" class="mt-4 bg-white text-red-600 px-4 py-2 rounded font-semibold">
+                    Закрити
+                </button>
             </div>
         `;
         document.body.appendChild(errorDiv);
-        
-        // Автоматично приховуємо через 10 секунд
-        setTimeout(() => {
-            if (errorDiv.parentNode) {
-                errorDiv.parentNode.removeChild(errorDiv);
-            }
-        }, 10000);
     }
 
     // Методи для роботи з активними картками
