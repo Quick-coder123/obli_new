@@ -30,24 +30,31 @@ class DataService {
     showConnectionError() {
         // Показуємо користувачу повідомлення про помилку
         const errorDiv = document.createElement('div');
-        errorDiv.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
+        errorDiv.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white p-6 rounded-lg shadow-lg z-50 max-w-lg';
         errorDiv.innerHTML = `
-            <div class="flex items-center">
-                <span class="mr-2">❌</span>
+            <div class="text-center">
+                <span class="text-2xl mb-2 block">❌</span>
                 <div>
-                    <strong>Помилка підключення до бази даних</strong><br>
-                    <small>Перевірте налаштування Supabase та підключення до інтернету</small>
+                    <strong class="block mb-2">Помилка підключення до Supabase</strong>
+                    <div class="text-sm mb-4">
+                        <p>Можливі причини:</p>
+                        <ul class="text-left mt-2">
+                            <li>• Таблиці не створені в Supabase</li>
+                            <li>• Неправильні налаштування підключення</li>
+                            <li>• Проблеми з інтернет-з'єднанням</li>
+                        </ul>
+                    </div>
+                    <div class="text-sm bg-yellow-500 bg-opacity-20 p-3 rounded mb-4">
+                        <strong>Рішення:</strong><br>
+                        Перейдіть в Supabase SQL Editor та виконайте код з файлу <code>supabase_tables.sql</code>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="bg-white text-red-600 px-4 py-2 rounded font-semibold hover:bg-gray-100">
+                        Закрити
+                    </button>
                 </div>
             </div>
         `;
         document.body.appendChild(errorDiv);
-        
-        // Автоматично приховуємо через 10 секунд
-        setTimeout(() => {
-            if (errorDiv.parentNode) {
-                errorDiv.parentNode.removeChild(errorDiv);
-            }
-        }, 10000);
     }
 
     // Методи для роботи з активними картками

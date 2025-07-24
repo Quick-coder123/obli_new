@@ -33,7 +33,7 @@ function initSupabase() {
 
 // Перевірка чи Supabase доступний
 function isSupabaseAvailable() {
-    return supabaseClient && SUPABASE_CONFIG.url !== 'https://erbvalpdaibohfwhixpe.supabase.co';
+    return supabaseClient && SUPABASE_CONFIG.url === 'https://erbvalpdaibohfwhixpe.supabase.co';
 }
 
 // Ініціалізація при завантаженні сторінки
