@@ -1,7 +1,7 @@
 // Конфігурація Supabase
 const SUPABASE_CONFIG = {
-    url: 'YOUR_SUPABASE_URL', // Замініть на ваш Supabase URL
-    anonKey: 'YOUR_SUPABASE_ANON_KEY', // Замініть на ваш Supabase Anon Key
+    url: 'https://erbvalpdaibohfwhixpe.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVyYnZhbHBkYWlib2hmd2hpeHBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMzNjYwMTksImV4cCI6MjA2ODk0MjAxOX0.pskoRXUVRTc5_gIcb0oV5u78pwcRjtfXbmY2TGz1TTI',
     
     // Назви таблиць
     tables: {
