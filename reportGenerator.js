@@ -1,16 +1,25 @@
 // Генератор звітів - логіка для створення звітів по картках
 class ReportGenerator {
     constructor() {
-        this.cards = this.loadCards();
-        this.archivedCards = this.loadArchivedCards();
-        this.allCards = [...this.cards, ...this.archivedCards];
+        this.allCards = [];
         this.init();
     }
 
-    init() {
+    async init() {
+        // Ініціалізуємо сервіс даних
+        if (!dataService) {
+            dataService = new DataService();
+            await dataService.init();
+        }
+        
         this.bindEvents();
+        await this.loadData();
         this.populateYearFilters();
         this.generateAllReports();
+    }
+    
+    async loadData() {
+        this.allCards = await dataService.getAllCards();
     }
 
     bindEvents() {
@@ -19,11 +28,17 @@ class ReportGenerator {
         const activeAccountsYearFilter = document.getElementById('activeAccountsYear');
         
         if (openedCardsYearFilter) {
-            openedCardsYearFilter.addEventListener('change', () => this.generateOpenedCardsReport());
+            openedCardsYearFilter.addEventListener('change', async () => {
+                await this.loadData();
+                this.generateOpenedCardsReport();
+            });
         }
         
         if (activeAccountsYearFilter) {
-            activeAccountsYearFilter.addEventListener('change', () => this.generateActiveAccountsReport());
+            activeAccountsYearFilter.addEventListener('change', async () => {
+                await this.loadData();
+                this.generateActiveAccountsReport();
+            });
         }
     }
 
@@ -88,7 +103,8 @@ class ReportGenerator {
         return Array.from(years).sort((a, b) => b - a); // Сортування по спаданню
     }
 
-    generateAllReports() {
+    async generateAllReports() {
+        await this.loadData();
         this.generateOpenedCardsReport();
         this.generateActiveAccountsReport();
         this.generateStatusReport();

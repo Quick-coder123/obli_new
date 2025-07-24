@@ -1,16 +1,22 @@
 // Менеджер карток - основна логіка для роботи з картками
 class CardManager {
     constructor() {
-        this.cards = this.loadCards();
-        this.archivedCards = this.loadArchivedCards();
+        this.cards = [];
+        this.archivedCards = [];
         this.editingCardId = null;
         this.init();
     }
 
-    init() {
+    async init() {
+        // Ініціалізуємо сервіс даних
+        if (!dataService) {
+            dataService = new DataService();
+            await dataService.init();
+        }
+        
         this.bindEvents();
-        this.loadTable();
-        this.populateFilters();
+        await this.loadTable();
+        await this.populateFilters();
     }
 
     bindEvents() {
@@ -58,22 +64,14 @@ class CardManager {
         }
     }
 
-    loadCards() {
-        const saved = localStorage.getItem('cards');
-        return saved ? JSON.parse(saved) : [];
+    async loadCards() {
+        this.cards = await dataService.getCards();
+        return this.cards;
     }
 
-    loadArchivedCards() {
-        const saved = localStorage.getItem('archivedCards');
-        return saved ? JSON.parse(saved) : [];
-    }
-
-    saveCards() {
-        localStorage.setItem('cards', JSON.stringify(this.cards));
-    }
-
-    saveArchivedCards() {
-        localStorage.setItem('archivedCards', JSON.stringify(this.archivedCards));
+    async loadArchivedCards() {
+        this.archivedCards = await dataService.getArchivedCards();
+        return this.archivedCards;
     }
 
     generateId() {
@@ -132,20 +130,25 @@ class CardManager {
         document.getElementById('docPassport').checked = card.documents?.passport || false;
     }
 
-    handleFormSubmit(e) {
+    async handleFormSubmit(e) {
         e.preventDefault();
         
         const formData = this.getFormData();
         
-        if (this.editingCardId) {
-            this.updateCard(this.editingCardId, formData);
-        } else {
-            this.addCard(formData);
+        try {
+            if (this.editingCardId) {
+                await this.updateCard(this.editingCardId, formData);
+            } else {
+                await this.addCard(formData);
+            }
+            
+            this.hideModal();
+            await this.loadTable();
+            await this.populateFilters();
+        } catch (error) {
+            console.error('Помилка збереження картки:', error);
+            this.showNotification('Помилка збереження картки', 'error');
         }
-        
-        this.hideModal();
-        this.loadTable();
-        this.populateFilters();
     }
 
     getFormData() {
@@ -165,41 +168,45 @@ class CardManager {
         };
     }
 
-    addCard(cardData) {
-        const card = {
-            id: this.generateId(),
-            ...cardData,
-            accountStatus: this.calculateAccountStatus(cardData.firstDepositDate),
-            createdAt: new Date().toISOString()
-        };
-        
-        this.cards.push(card);
-        this.saveCards();
-        this.checkForAutoArchive(card);
+    async addCard(cardData) {
+        try {
+            const card = await dataService.addCard(cardData);
+            this.cards.push(card);
+            await this.checkForAutoArchive(card);
+            this.showNotification('Картку додано успішно', 'success');
+        } catch (error) {
+            console.error('Помилка додавання картки:', error);
+            this.showNotification('Помилка додавання картки', 'error');
+        }
     }
 
-    updateCard(cardId, cardData) {
-        const cardIndex = this.cards.findIndex(c => c.id === cardId);
-        if (cardIndex === -1) return;
-
-        const updatedCard = {
-            ...this.cards[cardIndex],
-            ...cardData,
-            accountStatus: this.calculateAccountStatus(cardData.firstDepositDate),
-            updatedAt: new Date().toISOString()
-        };
-
-        this.cards[cardIndex] = updatedCard;
-        this.saveCards();
-        this.checkForAutoArchive(updatedCard);
+    async updateCard(cardId, cardData) {
+        try {
+            const updatedCard = await dataService.updateCard(cardId, cardData);
+            const cardIndex = this.cards.findIndex(c => c.id === cardId);
+            if (cardIndex !== -1) {
+                this.cards[cardIndex] = updatedCard;
+            }
+            await this.checkForAutoArchive(updatedCard);
+            this.showNotification('Картку оновлено успішно', 'success');
+        } catch (error) {
+            console.error('Помилка оновлення картки:', error);
+            this.showNotification('Помилка оновлення картки', 'error');
+        }
     }
 
-    deleteCard(cardId) {
+    async deleteCard(cardId) {
         if (confirm('Ви впевнені, що хочете видалити цю картку?')) {
-            this.cards = this.cards.filter(c => c.id !== cardId);
-            this.saveCards();
-            this.loadTable();
-            this.populateFilters();
+            try {
+                await dataService.deleteCard(cardId);
+                this.cards = this.cards.filter(c => c.id !== cardId);
+                await this.loadTable();
+                await this.populateFilters();
+                this.showNotification('Картку видалено успішно', 'success');
+            } catch (error) {
+                console.error('Помилка видалення картки:', error);
+                this.showNotification('Помилка видалення картки', 'error');
+            }
         }
     }
 
@@ -212,7 +219,7 @@ class CardManager {
         // Тут можна додати візуальне оновлення статусу в формі, якщо потрібно
     }
 
-    checkForAutoArchive(card) {
+    async checkForAutoArchive(card) {
         const shouldArchive = 
             card.accountStatus === 'Активний' &&
             card.cardStatus === 'Видана' &&
@@ -221,22 +228,21 @@ class CardManager {
             card.documents?.passport;
 
         if (shouldArchive) {
-            // Переміщення в архів
-            this.archivedCards.push({
-                ...card,
-                archivedAt: new Date().toISOString()
-            });
-            this.cards = this.cards.filter(c => c.id !== card.id);
-            
-            this.saveCards();
-            this.saveArchivedCards();
-            
-            // Показати повідомлення про автоматичне архівування
-            this.showNotification('Картку автоматично переміщено в архів', 'success');
+            try {
+                await dataService.moveToArchive(card);
+                this.cards = this.cards.filter(c => c.id !== card.id);
+                this.showNotification('Картку автоматично переміщено в архів', 'success');
+                await this.loadTable();
+                await this.populateFilters();
+            } catch (error) {
+                console.error('Помилка автоматичного архівування:', error);
+                this.showNotification('Помилка автоматичного архівування', 'error');
+            }
         }
     }
 
-    loadTable() {
+    async loadTable() {
+        await this.loadCards();
         const tbody = document.getElementById('cardsTableBody');
         if (!tbody) return;
 
@@ -353,14 +359,15 @@ class CardManager {
         return filtered;
     }
 
-    populateFilters() {
-        this.populateOrganizationFilter();
+    async populateFilters() {
+        await this.populateOrganizationFilter();
     }
 
-    populateOrganizationFilter() {
+    async populateOrganizationFilter() {
         const select = document.getElementById('filterOrganization');
         if (!select) return;
 
+        await this.loadCards();
         const organizations = [...new Set(this.cards.map(card => card.organization))];
         
         // Очистити існуючі опції (крім першої)
@@ -376,8 +383,8 @@ class CardManager {
         });
     }
 
-    applyFilters() {
-        this.loadTable();
+    async applyFilters() {
+        await this.loadTable();
     }
 
     showNotification(message, type = 'info') {
@@ -395,13 +402,13 @@ class CardManager {
     }
 
     // Метод для отримання всіх карток (активних + архівних) для звітів
-    getAllCards() {
-        return [...this.cards, ...this.archivedCards];
+    async getAllCards() {
+        return await dataService.getAllCards();
     }
 
     // Метод для отримання тільки архівних карток
-    getArchivedCards() {
-        return this.archivedCards;
+    async getArchivedCards() {
+        return await dataService.getArchivedCards();
     }
 }
 

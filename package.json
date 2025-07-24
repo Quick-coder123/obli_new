@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "npx http-server . -p 3000",
     "build": "echo 'Build process for static files'",
-    "start": "npx http-server . -p 3000"
+    "start": "npx http-server . -p 3000",
+    "setup-supabase": "echo 'Дивіться SUPABASE_SETUP.md для інструкцій'"
   },
   "keywords": ["cards", "accounting", "management"],
   "author": "Your Name",

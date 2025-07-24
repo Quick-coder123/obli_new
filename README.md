@@ -9,7 +9,9 @@
 - ✅ Багаторівневі фільтри та пошук
 - ✅ Комплексна звітність з динамічними фільтрами
 - ✅ Адаптивний дизайн для мобільних пристроїв
-- ✅ Локальне збереження даних
+- ✅ **Supabase інтеграція** з fallback на LocalStorage
+- ✅ Синхронізація даних між пристроями
+- ✅ Хмарне зберігання даних
 
 ## Сторінки
 
@@ -57,8 +59,9 @@
 
 - **Frontend**: HTML, CSS, JavaScript
 - **Стилі**: TailwindCSS
-- **Збереження**: LocalStorage
+- **База даних**: Supabase (PostgreSQL) з fallback на LocalStorage
 - **Архітектура**: Компонентна з розділенням відповідальності
+- **API**: Supabase REST API для операцій CRUD
 
 ## Файли проекту
 
@@ -68,7 +71,20 @@
 - `cardManager.js` - Менеджер активних карток
 - `archiveManager.js` - Менеджер архіву
 - `reportGenerator.js` - Генератор звітів
+- `dataService.js` - **Сервіс для роботи з даними (Supabase/LocalStorage)**
+- `supabaseConfig.js` - **Конфігурація Supabase**
+- `testData.js` - Тестові дані
 - `styles.css` - Кастомні стилі
+
+## Налаштування Supabase
+
+Детальні інструкції дивіться в файлі `SUPABASE_SETUP.md`
+
+### Швидкий старт:
+1. Створіть проект на https://supabase.com
+2. Скопіюйте URL та API ключ
+3. Замініть значення в `supabaseConfig.js`
+4. Виконайте SQL з `SUPABASE_SETUP.md`
 
 ## Запуск проекту
 
