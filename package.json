@@ -1,0 +1,17 @@
+{
+  "name": "card-accounting-system",
+  "version": "1.0.0",
+  "description": "Система обліку карток з автоматичним архівуванням та звітністю",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx http-server . -p 3000",
+    "build": "echo 'Build process for static files'",
+    "start": "npx http-server . -p 3000"
+  },
+  "keywords": ["cards", "accounting", "management"],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}

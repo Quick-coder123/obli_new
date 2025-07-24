@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Звіт по карткам</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-50">
+    <!-- Навігація -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <h1 class="text-xl font-semibold text-gray-900">Система обліку карток</h1>
+                    </div>
+                </div>
+                <div class="flex space-x-8">
+                    <a href="index.html" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                        Облік карток
+                    </a>
+                    <a href="report.html" class="border-indigo-500 text-indigo-600 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                        Звіт по карткам
+                    </a>
+                    <a href="archive.html" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                        Архів
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Заголовок -->
+        <div class="px-4 py-6 sm:px-0">
+            <h2 class="text-2xl font-bold text-gray-900">Звіт по карткам</h2>
+        </div>
+
+        <!-- Розділ 1: Відкриті картки -->
+        <div class="bg-white shadow rounded-lg mb-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-medium text-gray-900">Відкриті картки</h3>
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Рік:</label>
+                        <select id="openedCardsYear" class="border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <!-- Роки будуть додані динамічно -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Місяць</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Організація</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Кількість карток</th>
+                            </tr>
+                        </thead>
+                        <tbody id="openedCardsTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Дані будуть завантажені динамічно -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Розділ 2: Активні рахунки -->
+        <div class="bg-white shadow rounded-lg mb-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-medium text-gray-900">Активні рахунки</h3>
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700">Рік:</label>
+                        <select id="activeAccountsYear" class="border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <!-- Роки будуть додані динамічно -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Місяць</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Організація</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Кількість активних</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activeAccountsTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Дані будуть завантажені динамічно -->
+                        </tbody>
+                        <tfoot class="bg-gray-50">
+                            <tr id="activeAccountsTotal">
+                                <!-- Підсумкові значення -->
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Розділ 3: Активні / Очікує активації -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">Статус рахунків по організаціях</h3>
+                <p class="text-sm text-gray-600 mt-1">Всі роки, без фільтрів</p>
+            </div>
+            <div class="px-6 py-4">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Організація</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Активних</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Очікують активації</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Всього</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statusTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Дані будуть завантажені динамічно -->
+                        </tbody>
+                        <tfoot class="bg-gray-50">
+                            <tr id="statusTotal">
+                                <!-- Підсумкові значення -->
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="testData.js"></script>
+    <script src="reportGenerator.js"></script>
+</body>
+</html>
