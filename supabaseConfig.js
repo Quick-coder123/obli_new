@@ -11,16 +11,22 @@ const SUPABASE_CONFIG = {
 };
 
 // Ініціалізація Supabase клієнта
-let supabaseClient;
+let supabaseClient = null;
 
 // Функція для ініціалізації Supabase
 function initSupabase() {
-    if (typeof supabase !== 'undefined') {
-        supabaseClient = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-        console.log('Supabase ініціалізовано');
-        return true;
-    } else {
-        console.warn('Supabase не завантажено, використовується LocalStorage');
+    try {
+        // Перевіряємо чи Supabase SDK завантажений
+        if (typeof window !== 'undefined' && window.supabase) {
+            supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+            console.log('✅ Supabase успішно ініціалізовано');
+            return true;
+        } else {
+            console.warn('⚠️ Supabase SDK не завантажено, використовується LocalStorage');
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Помилка ініціалізації Supabase:', error);
         return false;
     }
 }
@@ -82,3 +88,31 @@ CREATE INDEX IF NOT EXISTS idx_archived_cards_account_open_date ON archived_card
 `;
 
 console.log('SQL для створення таблиць:', CREATE_TABLES_SQL);
+
+// Ініціалізація при завантаженні сторінки
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Початок ініціалізації системи...');
+    
+    // Чекаємо трохи, щоб Supabase SDK точно завантажився
+    setTimeout(() => {
+        const isSupabaseReady = initSupabase();
+        
+        if (isSupabaseReady) {
+            console.log('✅ Система готова з Supabase');
+        } else {
+            console.log('⚠️ Система працює в режимі LocalStorage');
+        }
+    }, 100);
+});
+
+// Додаткова перевірка для старих браузерів
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('📱 Система завантажена (fallback)');
+    });
+} else {
+    console.log('📱 Сторінка вже завантажена, ініціалізуємо...');
+    setTimeout(() => {
+        initSupabase();
+    }, 100);
+}

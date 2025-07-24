@@ -415,5 +415,9 @@ class CardManager {
 // Ініціалізація менеджера карток при завантаженні сторінки
 let cardManager;
 document.addEventListener('DOMContentLoaded', () => {
-    cardManager = new CardManager();
+    // Чекаємо трохи, щоб всі скрипти завантажились
+    setTimeout(() => {
+        console.log('🎯 Ініціалізація CardManager...');
+        cardManager = new CardManager();
+    }, 200);
 });

@@ -363,5 +363,9 @@ class ArchiveManager {
 // Ініціалізація менеджера архіву при завантаженні сторінки
 let archiveManager;
 document.addEventListener('DOMContentLoaded', () => {
-    archiveManager = new ArchiveManager();
+    // Чекаємо трохи, щоб всі скрипти завантажились
+    setTimeout(() => {
+        console.log('📦 Ініціалізація ArchiveManager...');
+        archiveManager = new ArchiveManager();
+    }, 200);
 });

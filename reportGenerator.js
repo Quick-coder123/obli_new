@@ -353,5 +353,9 @@ class ReportGenerator {
 // Ініціалізація генератора звітів при завантаженні сторінки
 let reportGenerator;
 document.addEventListener('DOMContentLoaded', () => {
-    reportGenerator = new ReportGenerator();
+    // Чекаємо трохи, щоб всі скрипти завантажились
+    setTimeout(() => {
+        console.log('📊 Ініціалізація ReportGenerator...');
+        reportGenerator = new ReportGenerator();
+    }, 200);
 });

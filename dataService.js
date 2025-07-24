@@ -6,14 +6,32 @@ class DataService {
     }
 
     async init() {
-        // Спробуємо ініціалізувати Supabase
-        this.useSupabase = initSupabase() && isSupabaseAvailable();
-        
-        if (this.useSupabase) {
-            console.log('Використовується Supabase для зберігання даних');
-        } else {
-            console.log('Використовується LocalStorage для зберігання даних');
-            // Ініціалізуємо тестові дані якщо їх немає
+        try {
+            // Чекаємо поки Supabase ініціалізується
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Спробуємо ініціалізувати Supabase
+            this.useSupabase = isSupabaseAvailable();
+            
+            if (this.useSupabase) {
+                console.log('✅ DataService використовує Supabase');
+                // Тестуємо підключення
+                try {
+                    await supabaseClient.from('cards').select('count');
+                    console.log('✅ Підключення до Supabase працює');
+                } catch (error) {
+                    console.warn('⚠️ Помилка підключення до Supabase:', error.message);
+                    this.useSupabase = false;
+                }
+            }
+            
+            if (!this.useSupabase) {
+                console.log('📱 DataService використовує LocalStorage');
+                this.initLocalStorageData();
+            }
+        } catch (error) {
+            console.error('❌ Помилка ініціалізації DataService:', error);
+            this.useSupabase = false;
             this.initLocalStorageData();
         }
     }
