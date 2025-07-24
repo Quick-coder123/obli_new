@@ -1,7 +1,7 @@
-// Сервіс для роботи з даними (Supabase + LocalStorage fallback)
+// Сервіс для роботи з даними (виключно Supabase)
 class DataService {
     constructor() {
-        this.useSupabase = false;
+        this.supabaseReady = false;
         this.init();
     }
 
@@ -10,185 +10,195 @@ class DataService {
             // Чекаємо поки Supabase ініціалізується
             await new Promise(resolve => setTimeout(resolve, 300));
             
-            // Спробуємо ініціалізувати Supabase
-            this.useSupabase = isSupabaseAvailable();
-            
-            if (this.useSupabase) {
-                console.log('✅ DataService використовує Supabase');
-                // Тестуємо підключення
-                try {
-                    await supabaseClient.from('cards').select('count');
-                    console.log('✅ Підключення до Supabase працює');
-                } catch (error) {
-                    console.warn('⚠️ Помилка підключення до Supabase:', error.message);
-                    this.useSupabase = false;
-                }
+            // Перевіряємо доступність Supabase
+            if (!isSupabaseAvailable()) {
+                throw new Error('Supabase не ініціалізований');
             }
             
-            if (!this.useSupabase) {
-                console.log('📱 DataService використовує LocalStorage');
-                this.initLocalStorageData();
-            }
+            // Тестуємо підключення
+            await supabaseClient.from('cards').select('count');
+            this.supabaseReady = true;
+            console.log('✅ DataService готовий з Supabase');
+            
         } catch (error) {
-            console.error('❌ Помилка ініціалізації DataService:', error);
-            this.useSupabase = false;
-            this.initLocalStorageData();
+            console.error('❌ Критична помилка: не вдалося підключитися до Supabase:', error.message);
+            this.supabaseReady = false;
+            this.showConnectionError();
         }
     }
 
-    initLocalStorageData() {
-        if (!localStorage.getItem('cards')) {
-            localStorage.setItem('cards', JSON.stringify([]));
-        }
-        if (!localStorage.getItem('archivedCards')) {
-            localStorage.setItem('archivedCards', JSON.stringify([]));
-        }
+    showConnectionError() {
+        // Показуємо користувачу повідомлення про помилку
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
+        errorDiv.innerHTML = `
+            <div class="flex items-center">
+                <span class="mr-2">❌</span>
+                <div>
+                    <strong>Помилка підключення до бази даних</strong><br>
+                    <small>Перевірте налаштування Supabase та підключення до інтернету</small>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(errorDiv);
+        
+        // Автоматично приховуємо через 10 секунд
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.parentNode.removeChild(errorDiv);
+            }
+        }, 10000);
     }
 
     // Методи для роботи з активними картками
     async getCards() {
-        if (this.useSupabase) {
-            try {
-                const { data, error } = await supabaseClient
-                    .from(SUPABASE_CONFIG.tables.cards)
-                    .select('*')
-                    .order('created_at', { ascending: false });
-                
-                if (error) throw error;
-                return this.formatCardsFromSupabase(data || []);
-            } catch (error) {
-                console.error('Помилка завантаження карток з Supabase:', error);
-                return this.getCardsFromLocalStorage();
-            }
-        } else {
-            return this.getCardsFromLocalStorage();
+        if (!this.supabaseReady) {
+            console.error('❌ Supabase не готовий');
+            return [];
+        }
+
+        try {
+            const { data, error } = await supabaseClient
+                .from(SUPABASE_CONFIG.tables.cards)
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) throw error;
+            return this.formatCardsFromSupabase(data || []);
+        } catch (error) {
+            console.error('❌ Помилка завантаження карток:', error);
+            throw new Error('Не вдалося завантажити картки з бази даних');
         }
     }
 
     async addCard(cardData) {
+        if (!this.supabaseReady) {
+            throw new Error('База даних недоступна');
+        }
+
         const card = {
             ...cardData,
-            id: this.generateId(),
             accountStatus: this.calculateAccountStatus(cardData.firstDepositDate),
             createdAt: new Date().toISOString()
         };
 
-        if (this.useSupabase) {
-            try {
-                const supabaseCard = this.formatCardForSupabase(card);
-                const { data, error } = await supabaseClient
-                    .from(SUPABASE_CONFIG.tables.cards)
-                    .insert([supabaseCard])
-                    .select();
-                
-                if (error) throw error;
-                return this.formatCardFromSupabase(data[0]);
-            } catch (error) {
-                console.error('Помилка додавання картки в Supabase:', error);
-                return this.addCardToLocalStorage(card);
-            }
-        } else {
-            return this.addCardToLocalStorage(card);
+        try {
+            const supabaseCard = this.formatCardForSupabase(card);
+            const { data, error } = await supabaseClient
+                .from(SUPABASE_CONFIG.tables.cards)
+                .insert([supabaseCard])
+                .select();
+            
+            if (error) throw error;
+            console.log('✅ Картку додано успішно');
+            return this.formatCardFromSupabase(data[0]);
+        } catch (error) {
+            console.error('❌ Помилка додавання картки:', error);
+            throw new Error('Не вдалося додати картку до бази даних');
         }
     }
 
     async updateCard(cardId, cardData) {
+        if (!this.supabaseReady) {
+            throw new Error('База даних недоступна');
+        }
+
         const updatedCard = {
             ...cardData,
             accountStatus: this.calculateAccountStatus(cardData.firstDepositDate),
             updatedAt: new Date().toISOString()
         };
 
-        if (this.useSupabase) {
-            try {
-                const supabaseCard = this.formatCardForSupabase(updatedCard);
-                const { data, error } = await supabaseClient
-                    .from(SUPABASE_CONFIG.tables.cards)
-                    .update(supabaseCard)
-                    .eq('id', cardId)
-                    .select();
-                
-                if (error) throw error;
-                return this.formatCardFromSupabase(data[0]);
-            } catch (error) {
-                console.error('Помилка оновлення картки в Supabase:', error);
-                return this.updateCardInLocalStorage(cardId, updatedCard);
-            }
-        } else {
-            return this.updateCardInLocalStorage(cardId, updatedCard);
+        try {
+            const supabaseCard = this.formatCardForSupabase(updatedCard);
+            const { data, error } = await supabaseClient
+                .from(SUPABASE_CONFIG.tables.cards)
+                .update(supabaseCard)
+                .eq('id', cardId)
+                .select();
+            
+            if (error) throw error;
+            console.log('✅ Картку оновлено успішно');
+            return this.formatCardFromSupabase(data[0]);
+        } catch (error) {
+            console.error('❌ Помилка оновлення картки:', error);
+            throw new Error('Не вдалося оновити картку в базі даних');
         }
     }
 
     async deleteCard(cardId) {
-        if (this.useSupabase) {
-            try {
-                const { error } = await supabaseClient
-                    .from(SUPABASE_CONFIG.tables.cards)
-                    .delete()
-                    .eq('id', cardId);
-                
-                if (error) throw error;
-                return true;
-            } catch (error) {
-                console.error('Помилка видалення картки з Supabase:', error);
-                return this.deleteCardFromLocalStorage(cardId);
-            }
-        } else {
-            return this.deleteCardFromLocalStorage(cardId);
+        if (!this.supabaseReady) {
+            throw new Error('База даних недоступна');
+        }
+
+        try {
+            const { error } = await supabaseClient
+                .from(SUPABASE_CONFIG.tables.cards)
+                .delete()
+                .eq('id', cardId);
+            
+            if (error) throw error;
+            console.log('✅ Картку видалено успішно');
+            return true;
+        } catch (error) {
+            console.error('❌ Помилка видалення картки:', error);
+            throw new Error('Не вдалося видалити картку з бази даних');
         }
     }
 
     // Методи для роботи з архівними картками
     async getArchivedCards() {
-        if (this.useSupabase) {
-            try {
-                const { data, error } = await supabaseClient
-                    .from(SUPABASE_CONFIG.tables.archived_cards)
-                    .select('*')
-                    .order('archived_at', { ascending: false });
-                
-                if (error) throw error;
-                return this.formatCardsFromSupabase(data || []);
-            } catch (error) {
-                console.error('Помилка завантаження архівних карток з Supabase:', error);
-                return this.getArchivedCardsFromLocalStorage();
-            }
-        } else {
-            return this.getArchivedCardsFromLocalStorage();
+        if (!this.supabaseReady) {
+            console.error('❌ Supabase не готовий');
+            return [];
+        }
+
+        try {
+            const { data, error } = await supabaseClient
+                .from(SUPABASE_CONFIG.tables.archived_cards)
+                .select('*')
+                .order('archived_at', { ascending: false });
+            
+            if (error) throw error;
+            return this.formatCardsFromSupabase(data || []);
+        } catch (error) {
+            console.error('❌ Помилка завантаження архівних карток:', error);
+            throw new Error('Не вдалося завантажити архівні картки з бази даних');
         }
     }
 
     async moveToArchive(card) {
-        const archivedCard = {
-            ...card,
-            archivedAt: new Date().toISOString()
-        };
+        if (!this.supabaseReady) {
+            throw new Error('База даних недоступна');
+        }
 
-        if (this.useSupabase) {
-            try {
-                // Додаємо в архів
-                const supabaseCard = this.formatCardForSupabase(archivedCard);
-                const { error: insertError } = await supabaseClient
-                    .from(SUPABASE_CONFIG.tables.archived_cards)
-                    .insert([supabaseCard]);
-                
-                if (insertError) throw insertError;
+        try {
+            // Додаємо в архів
+            const archivedCard = {
+                ...card,
+                archivedAt: new Date().toISOString()
+            };
+            const supabaseArchivedCard = this.formatCardForSupabase(archivedCard);
+            
+            const { error: insertError } = await supabaseClient
+                .from(SUPABASE_CONFIG.tables.archived_cards)
+                .insert([supabaseArchivedCard]);
+            
+            if (insertError) throw insertError;
 
-                // Видаляємо з активних
-                const { error: deleteError } = await supabaseClient
-                    .from(SUPABASE_CONFIG.tables.cards)
-                    .delete()
-                    .eq('id', card.id);
-                
-                if (deleteError) throw deleteError;
-                
-                return true;
-            } catch (error) {
-                console.error('Помилка переміщення в архів в Supabase:', error);
-                return this.moveToArchiveInLocalStorage(archivedCard);
-            }
-        } else {
-            return this.moveToArchiveInLocalStorage(archivedCard);
+            // Видаляємо з активних
+            const { error: deleteError } = await supabaseClient
+                .from(SUPABASE_CONFIG.tables.cards)
+                .delete()
+                .eq('id', card.id);
+            
+            if (deleteError) throw deleteError;
+            
+            console.log('✅ Картку переміщено в архів');
+            return true;
+        } catch (error) {
+            console.error('❌ Помилка переміщення в архів:', error);
+            throw new Error('Не вдалося перемістити картку в архів');
         }
     }
 
@@ -202,11 +212,11 @@ class DataService {
             account_open_date: card.accountOpenDate,
             first_deposit_date: card.firstDepositDate || null,
             card_status: this.translateCardStatusToEnglish(card.cardStatus),
-            comment: card.comment || null,
-            documents: card.documents,
+            comment: card.comment || '',
+            documents: card.documents || {"contract": false, "survey": false, "passport": false},
             account_status: this.translateAccountStatusToEnglish(card.accountStatus),
             created_at: card.createdAt,
-            updated_at: card.updatedAt || card.createdAt,
+            updated_at: card.updatedAt || new Date().toISOString(),
             archived_at: card.archivedAt || null
         };
     }
@@ -215,7 +225,7 @@ class DataService {
         return {
             id: supabaseCard.id,
             fullName: supabaseCard.full_name,
-            ipn: supabaseCard.ipn,
+            ipn: supabaseCard.ipn,  
             organization: supabaseCard.organization,
             accountOpenDate: supabaseCard.account_open_date,
             firstDepositDate: supabaseCard.first_deposit_date,
@@ -229,112 +239,47 @@ class DataService {
         };
     }
 
-    // Переклад статусів
     translateCardStatusToEnglish(status) {
-        const statusMap = {
+        const translations = {
             'Виготовляється': 'Manufacturing',
-            'На відділенні': 'At_Office',
-            'На організації': 'At_Organization',
-            'Видана': 'Issued'
+            'Відділ': 'Department', 
+            'Організація': 'Organization',
+            'Видано': 'Issued'
         };
-        return statusMap[status] || 'Manufacturing';
+        return translations[status] || status;
     }
 
     translateCardStatusToUkrainian(status) {
-        const statusMap = {
+        const translations = {
             'Manufacturing': 'Виготовляється',
-            'At_Office': 'На відділенні',
-            'At_Organization': 'На організації',
-            'Issued': 'Видана'
+            'Department': 'Відділ',
+            'Organization': 'Організація', 
+            'Issued': 'Видано'
         };
-        return statusMap[status] || 'Виготовляється';
+        return translations[status] || status;
     }
 
     translateAccountStatusToEnglish(status) {
-        const statusMap = {
-            'Активний': 'Active',
-            'Очікує активацію': 'Pending'
+        const translations = {
+            'Очікує активацію': 'Pending',
+            'Активний': 'Active'
         };
-        return statusMap[status] || 'Pending';
+        return translations[status] || status;
     }
 
     translateAccountStatusToUkrainian(status) {
-        const statusMap = {
-            'Active': 'Активний',
-            'Pending': 'Очікує активацію'
+        const translations = {
+            'Pending': 'Очікує активацію',
+            'Active': 'Активний'
         };
-        return statusMap[status] || 'Очікує активацію';
+        return translations[status] || status;
     }
 
     formatCardsFromSupabase(supabaseCards) {
         return supabaseCards.map(card => this.formatCardFromSupabase(card));
     }
 
-    // LocalStorage методи (fallback)
-    getCardsFromLocalStorage() {
-        const saved = localStorage.getItem('cards');
-        return saved ? JSON.parse(saved) : [];
-    }
-
-    addCardToLocalStorage(card) {
-        const cards = this.getCardsFromLocalStorage();
-        cards.push(card);
-        localStorage.setItem('cards', JSON.stringify(cards));
-        return card;
-    }
-
-    updateCardInLocalStorage(cardId, updatedData) {
-        const cards = this.getCardsFromLocalStorage();
-        const cardIndex = cards.findIndex(c => c.id === cardId);
-        if (cardIndex !== -1) {
-            cards[cardIndex] = { ...cards[cardIndex], ...updatedData };
-            localStorage.setItem('cards', JSON.stringify(cards));
-            return cards[cardIndex];
-        }
-        return null;
-    }
-
-    deleteCardFromLocalStorage(cardId) {
-        const cards = this.getCardsFromLocalStorage();
-        const filteredCards = cards.filter(c => c.id !== cardId);
-        localStorage.setItem('cards', JSON.stringify(filteredCards));
-        return true;
-    }
-
-    getArchivedCardsFromLocalStorage() {
-        const saved = localStorage.getItem('archivedCards');
-        return saved ? JSON.parse(saved) : [];
-    }
-
-    moveToArchiveInLocalStorage(archivedCard) {
-        // Додаємо в архів
-        const archivedCards = this.getArchivedCardsFromLocalStorage();
-        archivedCards.push(archivedCard);
-        localStorage.setItem('archivedCards', JSON.stringify(archivedCards));
-
-        // Видаляємо з активних
-        this.deleteCardFromLocalStorage(archivedCard.id);
-        return true;
-    }
-
-    // Загальні допоміжні методи
-    generateId() {
-        return Date.now().toString() + Math.random().toString(36).substr(2, 9);
-    }
-
     calculateAccountStatus(firstDepositDate) {
         return firstDepositDate ? 'Активний' : 'Очікує активацію';
     }
-
-    // Метод для отримання всіх карток (активних + архівних) для звітів
-    async getAllCards() {
-        const [activeCards, archivedCards] = await Promise.all([
-            this.getCards(),
-            this.getArchivedCards()
-        ]);
-        return [...activeCards, ...archivedCards];
-    }
 }
-
-// Глобальний екземпляр сервісу
-let dataService;

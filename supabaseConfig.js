@@ -33,61 +33,8 @@ function initSupabase() {
 
 // Перевірка чи Supabase доступний
 function isSupabaseAvailable() {
-    return supabaseClient && SUPABASE_CONFIG.url !== 'YOUR_SUPABASE_URL';
+    return supabaseClient && SUPABASE_CONFIG.url !== 'https://erbvalpdaibohfwhixpe.supabase.co';
 }
-
-// SQL для створення таблиць (виконати в Supabase SQL Editor)
-const CREATE_TABLES_SQL = `
--- Таблиця для активних карток
-CREATE TABLE IF NOT EXISTS cards (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    full_name TEXT NOT NULL,
-    ipn TEXT NOT NULL,
-    organization TEXT NOT NULL,
-    account_open_date DATE NOT NULL,
-    first_deposit_date DATE,
-    card_status TEXT NOT NULL DEFAULT 'Виготовляється',
-    comment TEXT,
-    documents JSONB DEFAULT '{"contract": false, "survey": false, "passport": false}',
-    account_status TEXT NOT NULL DEFAULT 'Очікує активацію',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Таблиця для архівних карток
-CREATE TABLE IF NOT EXISTS archived_cards (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    full_name TEXT NOT NULL,
-    ipn TEXT NOT NULL,
-    organization TEXT NOT NULL,
-    account_open_date DATE NOT NULL,
-    first_deposit_date DATE,
-    card_status TEXT NOT NULL DEFAULT 'Виготовляється',
-    comment TEXT,
-    documents JSONB DEFAULT '{"contract": false, "survey": false, "passport": false}',
-    account_status TEXT NOT NULL DEFAULT 'Очікує активацію',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    archived_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- RLS (Row Level Security) політики
-ALTER TABLE cards ENABLE ROW LEVEL SECURITY;
-ALTER TABLE archived_cards ENABLE ROW LEVEL SECURITY;
-
--- Дозволити всім операції (для простоти, в продакшені слід налаштувати безпеку)
-CREATE POLICY "Enable all operations for cards" ON cards FOR ALL USING (true);
-CREATE POLICY "Enable all operations for archived_cards" ON archived_cards FOR ALL USING (true);
-
--- Індекси для оптимізації
-CREATE INDEX IF NOT EXISTS idx_cards_organization ON cards(organization);
-CREATE INDEX IF NOT EXISTS idx_cards_account_open_date ON cards(account_open_date);
-CREATE INDEX IF NOT EXISTS idx_cards_account_status ON cards(account_status);
-CREATE INDEX IF NOT EXISTS idx_archived_cards_organization ON archived_cards(organization);
-CREATE INDEX IF NOT EXISTS idx_archived_cards_account_open_date ON archived_cards(account_open_date);
-`;
-
-console.log('SQL для створення таблиць:', CREATE_TABLES_SQL);
 
 // Ініціалізація при завантаженні сторінки
 document.addEventListener('DOMContentLoaded', function() {
@@ -100,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isSupabaseReady) {
             console.log('✅ Система готова з Supabase');
         } else {
-            console.log('⚠️ Система працює в режимі LocalStorage');
+            console.error('❌ Помилка: Supabase не ініціалізовано! Перевірте підключення.');
         }
     }, 100);
 });

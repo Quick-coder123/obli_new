@@ -8,15 +8,57 @@ class CardManager {
     }
 
     async init() {
-        // Ініціалізуємо сервіс даних
-        if (!dataService) {
-            dataService = new DataService();
-            await dataService.init();
+        try {
+            // Ініціалізуємо сервіс даних
+            if (!dataService) {
+                dataService = new DataService();
+                await dataService.init();
+            }
+            
+            this.bindEvents();
+            await this.loadTable();
+            await this.populateFilters();
+            console.log('✅ CardManager ініціалізовано успішно');
+        } catch (error) {
+            console.error('❌ Помилка ініціалізації CardManager:', error);
+            this.showError('Помилка ініціалізації системи');
         }
+    }
+
+    showError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
+        errorDiv.innerHTML = `
+            <div class="flex items-center">
+                <span class="mr-2">❌</span>
+                <span>${message}</span>
+            </div>
+        `;
+        document.body.appendChild(errorDiv);
         
-        this.bindEvents();
-        await this.loadTable();
-        await this.populateFilters();
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.parentNode.removeChild(errorDiv);
+            }
+        }, 5000);
+    }
+
+    showSuccess(message) {
+        const successDiv = document.createElement('div');
+        successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50';
+        successDiv.innerHTML = `
+            <div class="flex items-center">
+                <span class="mr-2">✅</span>
+                <span>${message}</span>
+            </div>
+        `;
+        document.body.appendChild(successDiv);
+        
+        setTimeout(() => {
+            if (successDiv.parentNode) {
+                successDiv.parentNode.removeChild(successDiv);
+            }
+        }, 3000);
     }
 
     bindEvents() {
@@ -65,13 +107,25 @@ class CardManager {
     }
 
     async loadCards() {
-        this.cards = await dataService.getCards();
-        return this.cards;
+        try {
+            this.cards = await dataService.getCards();
+            return this.cards;
+        } catch (error) {
+            console.error('❌ Помилка завантаження карток:', error);
+            this.showError('Не вдалося завантажити картки');
+            return [];
+        }
     }
 
     async loadArchivedCards() {
-        this.archivedCards = await dataService.getArchivedCards();
-        return this.archivedCards;
+        try {
+            this.archivedCards = await dataService.getArchivedCards();
+            return this.archivedCards;
+        } catch (error) {
+            console.error('❌ Помилка завантаження архівних карток:', error);
+            this.showError('Не вдалося завантажити архівні картки');
+            return [];
+        }
     }
 
     generateId() {
