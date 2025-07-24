@@ -1,3 +1,6 @@
+// Глобальна змінна для сервісу даних
+let dataService;
+
 // Генератор звітів - логіка для створення звітів по картках
 class ReportGenerator {
     constructor() {

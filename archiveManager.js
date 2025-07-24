@@ -1,15 +1,28 @@
+// Глобальна змінна для сервісу даних
+let dataService;
+
 // Менеджер архіву - логіка для роботи з архівними картками
 class ArchiveManager {
     constructor() {
-        this.archivedCards = this.loadArchivedCards();
+        this.archivedCards = [];
         this.editingCardId = null;
         this.init();
     }
 
-    init() {
-        this.bindEvents();
-        this.loadTable();
-        this.populateFilters();
+    async init() {
+        try {
+            // Ініціалізуємо сервіс даних
+            if (!dataService) {
+                dataService = new DataService();
+                await dataService.init();
+            }
+            
+            this.bindEvents();
+            await this.loadTable();
+            console.log('✅ ArchiveManager ініціалізовано успішно');
+        } catch (error) {
+            console.error('❌ Помилка ініціалізації ArchiveManager:', error);
+        }
     }
 
     bindEvents() {
@@ -49,15 +62,6 @@ class ArchiveManager {
         if (firstDepositDate) {
             firstDepositDate.addEventListener('change', () => this.updateAccountStatus());
         }
-    }
-
-    loadArchivedCards() {
-        const saved = localStorage.getItem('archivedCards');
-        return saved ? JSON.parse(saved) : [];
-    }
-
-    saveArchivedCards() {
-        localStorage.setItem('archivedCards', JSON.stringify(this.archivedCards));
     }
 
     showEditModal(cardId) {
@@ -171,7 +175,7 @@ class ArchiveManager {
         // Візуальне оновлення статусу в формі, якщо потрібно
     }
 
-    checkArchiveStatus(card) {
+    async checkArchiveStatus(card) {
         const shouldStayInArchive = 
             card.accountStatus === 'Активний' &&
             card.cardStatus === 'Видана' &&
@@ -180,30 +184,67 @@ class ArchiveManager {
             card.documents?.passport;
 
         if (!shouldStayInArchive) {
-            // Переміщення назад в активні картки
-            const activeCards = JSON.parse(localStorage.getItem('cards') || '[]');
-            activeCards.push({
-                ...card,
-                movedFromArchive: new Date().toISOString()
-            });
-            
-            this.archivedCards = this.archivedCards.filter(c => c.id !== card.id);
-            
-            localStorage.setItem('cards', JSON.stringify(activeCards));
-            this.saveArchivedCards();
-            
-            this.showNotification('Картку переміщено назад в активні картки', 'info');
+            try {
+                // Переміщуємо назад в активні картки через Supabase
+                await this.moveFromArchive(card);
+                this.showNotification('Картку переміщено назад в активні картки', 'info');
+            } catch (error) {
+                console.error('❌ Помилка переміщення з архіву:', error);
+                this.showNotification('Помилка переміщення картки', 'error');
+            }
         }
     }
 
-    loadTable() {
-        const tbody = document.getElementById('archiveTableBody');
-        if (!tbody) return;
+    async moveFromArchive(card) {
+        if (!dataService.supabaseReady) {
+            throw new Error('База даних недоступна');
+        }
 
-        const filteredCards = this.getFilteredCards();
-        tbody.innerHTML = '';
+        try {
+            // Додаємо назад в активні картки
+            const activeCard = {
+                ...card,
+                movedFromArchive: new Date().toISOString()
+            };
+            delete activeCard.archivedAt; // Видаляємо дату архівування
 
-        if (filteredCards.length === 0) {
+            const supabaseCard = dataService.formatCardForSupabase(activeCard);
+            const { error: insertError } = await supabaseClient
+                .from(SUPABASE_CONFIG.tables.cards)
+                .insert([supabaseCard]);
+            
+            if (insertError) throw insertError;
+
+            // Видаляємо з архіву
+            const { error: deleteError } = await supabaseClient
+                .from(SUPABASE_CONFIG.tables.archived_cards)
+                .delete()
+                .eq('id', card.id);
+            
+            if (deleteError) throw deleteError;
+
+            // Оновлюємо локальний масив
+            this.archivedCards = this.archivedCards.filter(c => c.id !== card.id);
+            await this.loadTable();
+            
+            return true;
+        } catch (error) {
+            console.error('❌ Помилка переміщення з архіву:', error);
+            throw error;
+        }
+    }
+
+    async loadTable() {
+        try {
+            this.archivedCards = await dataService.getArchivedCards();
+            
+            const tbody = document.getElementById('archiveTableBody');
+            if (!tbody) return;
+
+            const filteredCards = this.getFilteredCards();
+            tbody.innerHTML = '';
+
+            if (filteredCards.length === 0) {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="11" class="px-6 py-4 text-center text-gray-500">
@@ -218,6 +259,9 @@ class ArchiveManager {
             const row = this.createTableRow(card, index + 1);
             tbody.appendChild(row);
         });
+        } catch (error) {
+            console.error('❌ Помилка завантаження архівних карток:', error);
+        }
     }
 
     createTableRow(card, number) {
