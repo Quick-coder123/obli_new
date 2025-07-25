@@ -384,20 +384,6 @@ class ArchiveManager {
         this.loadTable();
     }
 
-    showNotification(message, type = 'info') {
-        // Створити елемент повідомлення
-        const notification = document.createElement('div');
-        notification.className = `alert alert-${type} fixed top-4 right-4 z-50 fade-in`;
-        notification.textContent = message;
-        
-        document.body.appendChild(notification);
-        
-        // Видалити повідомлення через 3 секунди
-        setTimeout(() => {
-            notification.remove();
-        }, 3000);
-    }
-
     // Метод для отримання архівних карток для звітів
     getArchivedCards() {
         return this.archivedCards;

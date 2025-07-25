@@ -71,6 +71,12 @@ class CardManager {
             addCardBtn.addEventListener('click', () => this.showAddModal());
         }
 
+        // Кнопка імпорту Excel
+        const importExcelBtn = document.getElementById('importExcelBtn');
+        if (importExcelBtn) {
+            importExcelBtn.addEventListener('click', () => this.showImportModal());
+        }
+
         // Форма картки
         const cardForm = document.getElementById('cardForm');
         if (cardForm) {
@@ -91,6 +97,28 @@ class CardManager {
                     this.hideModal();
                 }
             });
+        }
+
+        // Модальне вікно імпорту
+        const importModal = document.getElementById('importModal');
+        if (importModal) {
+            importModal.addEventListener('click', (e) => {
+                if (e.target === importModal) {
+                    this.hideImportModal();
+                }
+            });
+        }
+
+        // Кнопка скасування імпорту
+        const cancelImportBtn = document.getElementById('cancelImportBtn');
+        if (cancelImportBtn) {
+            cancelImportBtn.addEventListener('click', () => this.hideImportModal());
+        }
+
+        // Кнопка обробки імпорту
+        const processImportBtn = document.getElementById('processImportBtn');
+        if (processImportBtn) {
+            processImportBtn.addEventListener('click', () => this.processImport());
         }
 
         // Фільтри
@@ -446,20 +474,6 @@ class CardManager {
         await this.loadTable();
     }
 
-    showNotification(message, type = 'info') {
-        // Створити елемент повідомлення
-        const notification = document.createElement('div');
-        notification.className = `alert alert-${type} fixed top-4 right-4 z-50 fade-in`;
-        notification.textContent = message;
-        
-        document.body.appendChild(notification);
-        
-        // Видалити повідомлення через 3 секунди
-        setTimeout(() => {
-            notification.remove();
-        }, 3000);
-    }
-
     // Метод для отримання всіх карток (активних + архівних) для звітів
     async getAllCards() {
         try {
@@ -475,6 +489,224 @@ class CardManager {
     // Метод для отримання тільки архівних карток
     async getArchivedCards() {
         return await dataService.getArchivedCards();
+    }
+
+    // Показати модальне вікно імпорту
+    showImportModal() {
+        const modal = document.getElementById('importModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            // Очистити попередній вибір файлу
+            const fileInput = document.getElementById('importFileInput');
+            if (fileInput) {
+                fileInput.value = '';
+            }
+        }
+    }
+
+    // Приховати модальне вікно імпорту
+    hideImportModal() {
+        const modal = document.getElementById('importModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+
+    // Обробка імпорту
+    async processImport() {
+        const fileInput = document.getElementById('importFileInput');
+        if (!fileInput || !fileInput.files[0]) {
+            this.showNotification('❌ Оберіть файл для імпорту', 'error');
+            return;
+        }
+
+        const file = fileInput.files[0];
+        
+        try {
+            this.showNotification('⏳ Обробка файлу...', 'info');
+            
+            // Читаємо файл
+            const data = await this.readExcelFile(file);
+            
+            if (!data || data.length === 0) {
+                this.showNotification('❌ Файл порожній або неправильний формат', 'error');
+                return;
+            }
+
+            // Валідуємо та імпортуємо дані
+            const results = await this.importCardsData(data);
+            
+            // Показуємо результати
+            if (results.success > 0) {
+                this.showNotification(`✅ Успішно імпортовано ${results.success} карток`, 'success');
+                this.hideImportModal();
+                await this.loadTable(); // Оновлюємо таблицю
+            }
+            
+            if (results.errors > 0) {
+                this.showNotification(`⚠️ ${results.errors} записів містили помилки`, 'warning');
+            }
+
+        } catch (error) {
+            console.error('❌ Помилка імпорту:', error);
+            this.showNotification('❌ Помилка при імпорті файлу', 'error');
+        }
+    }
+
+    // Читання Excel файлу
+    async readExcelFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Беремо перший аркуш
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // Конвертуємо в JSON
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    resolve(jsonData);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            
+            reader.onerror = () => reject(new Error('Помилка читання файлу'));
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    // Імпорт даних карток
+    async importCardsData(data) {
+        let success = 0;
+        let errors = 0;
+
+        for (const row of data) {
+            try {
+                // Мапування колонок (підтримка різних варіантів назв)
+                const cardData = this.mapRowToCard(row);
+                
+                // Валідація обов'язкових полів
+                if (!cardData.fullName || !cardData.ipn) {
+                    errors++;
+                    continue;
+                }
+
+                // Збереження в базу даних
+                await dataService.addCard(cardData);
+                success++;
+
+            } catch (error) {
+                console.error('Помилка збереження картки:', error);
+                errors++;
+            }
+        }
+
+        return { success, errors };
+    }
+
+    // Мапування рядка Excel на об'єкт картки
+    mapRowToCard(row) {
+        // Функція для пошуку значення по різним варіантам назв колонок
+        const findValue = (possibleNames) => {
+            for (const name of possibleNames) {
+                if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
+                    return row[name];
+                }
+            }
+            return '';
+        };
+
+        return {
+            fullName: findValue(['ПІБ', 'PIB', 'Full Name', 'Name', 'Имя']),
+            ipn: findValue(['ІПН', 'IPN', 'Tax ID', 'ИНН']),
+            organization: findValue(['Організація', 'Organization', 'Организация', 'Company']),
+            openDate: this.parseDate(findValue(['Дата відкриття', 'Open Date', 'Дата открытия', 'Date'])),
+            firstCreditDate: this.parseDate(findValue(['Дата 1-го зарах.', 'First Credit Date', 'Дата первого зач.', 'Credit Date'])),
+            accountStatus: findValue(['Статус рахунку', 'Account Status', 'Статус счета', 'Status']) || 'Очікує активацію',
+            comment: findValue(['Коментар', 'Comment', 'Комментарий', 'Notes']),
+            hasContract: false,
+            hasSurvey: false,
+            hasPassport: false
+        };
+    }
+
+    // Парсинг дати з різних форматів
+    parseDate(dateValue) {
+        if (!dateValue) return '';
+        
+        // Якщо це вже Date об'єкт
+        if (dateValue instanceof Date) {
+            return dateValue.toISOString().split('T')[0];
+        }
+        
+        // Якщо це рядок
+        if (typeof dateValue === 'string') {
+            // Спроба парсити різні формати
+            const formats = [
+                /^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
+                /^\d{2}\/\d{2}\/\d{4}$/, // DD/MM/YYYY
+                /^\d{2}\.\d{2}\.\d{4}$/, // DD.MM.YYYY
+            ];
+            
+            for (const format of formats) {
+                if (format.test(dateValue)) {
+                    const date = new Date(dateValue);
+                    if (!isNaN(date.getTime())) {
+                        return date.toISOString().split('T')[0];
+                    }
+                }
+            }
+        }
+        
+        // Якщо це число (Excel serial date)
+        if (typeof dateValue === 'number') {
+            const date = new Date((dateValue - 25569) * 86400 * 1000);
+            if (!isNaN(date.getTime())) {
+                return date.toISOString().split('T')[0];
+            }
+        }
+        
+        return '';
+    }
+
+    // Показати повідомлення з різними типами
+    showNotification(message, type = 'info') {
+        const colors = {
+            'success': 'bg-green-500',
+            'error': 'bg-red-500',
+            'info': 'bg-blue-500',
+            'warning': 'bg-yellow-500'
+        };
+
+        const icons = {
+            'success': '✅',
+            'error': '❌',
+            'info': 'ℹ️',
+            'warning': '⚠️'
+        };
+
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 ${colors[type]} text-white p-4 rounded-lg shadow-lg z-50 max-w-sm`;
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <span class="mr-2">${icons[type]}</span>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Видалити повідомлення через 5 секунд
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
     }
 }
 

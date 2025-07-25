@@ -361,12 +361,6 @@ class ReportGenerator {
 
         return Object.values(data).sort((a, b) => a.organization.localeCompare(b.organization));
     }
-
-    // Метод для експорту звітів (майбутня функціональність)
-    exportReport(reportType) {
-        // Тут можна реалізувати експорт в CSV, Excel або PDF
-        console.log(`Експорт звіту: ${reportType}`);
-    }
 }
 
 // Ініціалізація генератора звітів при завантаженні сторінки
