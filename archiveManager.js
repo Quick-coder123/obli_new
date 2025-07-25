@@ -109,18 +109,17 @@ class ArchiveManager {
         document.getElementById('docPassport').checked = card.documents?.passport || false;
     }
 
-    handleFormSubmit(e) {
+    async handleFormSubmit(e) {
         e.preventDefault();
         
         const formData = this.getFormData();
         
         if (this.editingCardId) {
-            this.updateCard(this.editingCardId, formData);
+            await this.updateCard(this.editingCardId, formData);
         }
         
         this.hideModal();
-        this.loadTable();
-        this.populateFilters();
+        // loadTable вже викликається в updateCard, не потрібно дублювати
     }
 
     getFormData() {
@@ -140,22 +139,37 @@ class ArchiveManager {
         };
     }
 
-    updateCard(cardId, cardData) {
-        const cardIndex = this.archivedCards.findIndex(c => c.id === cardId);
-        if (cardIndex === -1) return;
+    async updateCard(cardId, cardData) {
+        try {
+            const cardIndex = this.archivedCards.findIndex(c => c.id === cardId);
+            if (cardIndex === -1) {
+                throw new Error('Картку не знайдено в архіві');
+            }
 
-        const updatedCard = {
-            ...this.archivedCards[cardIndex],
-            ...cardData,
-            accountStatus: this.calculateAccountStatus(cardData.firstDepositDate),
-            updatedAt: new Date().toISOString()
-        };
+            const updatedCard = {
+                ...this.archivedCards[cardIndex],
+                ...cardData,
+                accountStatus: this.calculateAccountStatus(cardData.firstDepositDate),
+                updatedAt: new Date().toISOString()
+            };
 
-        this.archivedCards[cardIndex] = updatedCard;
-        this.saveArchivedCards();
+            // Оновлюємо в базі даних
+            await dataService.updateArchivedCard(cardId, updatedCard);
+            
+            // Оновлюємо локальний масив
+            this.archivedCards[cardIndex] = updatedCard;
+            
+            // Оновлюємо інтерфейс
+            await this.loadTable();
+            this.showNotification('Картку оновлено успішно', 'success');
 
-        // Перевірити, чи картка все ще має бути в архіві
-        this.checkArchiveStatus(updatedCard);
+            // Перевірити, чи картка все ще має бути в архіві
+            await this.checkArchiveStatus(updatedCard);
+            
+        } catch (error) {
+            console.error('❌ Помилка оновлення архівної картки:', error);
+            this.showNotification('Помилка оновлення картки', 'error');
+        }
     }
 
     async deleteCard(cardId) {

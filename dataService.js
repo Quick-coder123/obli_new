@@ -181,6 +181,42 @@ class DataService {
         }
     }
 
+    async updateArchivedCard(cardId, cardData) {
+        if (!this.supabaseReady) {
+            throw new Error('База даних недоступна');
+        }
+
+        console.log('🔄 Оновлення архівної картки:', cardId, cardData);
+
+        const updatedCard = {
+            ...cardData,
+            accountStatus: this.calculateAccountStatus(cardData.firstDepositDate),
+            updatedAt: new Date().toISOString()
+        };
+
+        try {
+            const supabaseCard = this.formatCardForSupabase(updatedCard);
+            console.log('📤 Відправка оновлення архівної картки в Supabase:', supabaseCard);
+            
+            const { data, error } = await supabaseClient
+                .from(SUPABASE_CONFIG.tables.archivedCards)
+                .update(supabaseCard)
+                .eq('id', cardId)
+                .select();
+            
+            if (error) {
+                console.error('❌ Supabase помилка при оновленні архівної картки:', error);
+                throw error;
+            }
+            
+            console.log('✅ Архівну картку оновлено успішно:', data[0]);
+            return this.formatCardFromSupabase(data[0]);
+        } catch (error) {
+            console.error('❌ Помилка оновлення архівної картки:', error);
+            throw new Error(`Не вдалося оновити архівну картку: ${error.message}`);
+        }
+    }
+
     // Методи для роботи з архівними картками
     async getArchivedCards() {
         if (!this.supabaseReady) {
@@ -190,7 +226,7 @@ class DataService {
 
         try {
             const { data, error } = await supabaseClient
-                .from(SUPABASE_CONFIG.tables.archived_cards)
+                .from(SUPABASE_CONFIG.tables.archivedCards)
                 .select('*')
                 .order('archived_at', { ascending: false });
             
@@ -216,7 +252,7 @@ class DataService {
             const supabaseArchivedCard = this.formatCardForSupabase(archivedCard);
             
             const { error: insertError } = await supabaseClient
-                .from(SUPABASE_CONFIG.tables.archived_cards)
+                .from(SUPABASE_CONFIG.tables.archivedCards)
                 .insert([supabaseArchivedCard]);
             
             if (insertError) throw insertError;
