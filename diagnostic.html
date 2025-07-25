@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🩺 Діагностика системи</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-50 p-4">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6 text-center">🩺 Діагностика системи</h1>
+        
+        <div class="space-y-4">
+            <div class="bg-white rounded-lg shadow p-4">
+                <h2 class="font-semibold mb-2">📊 Статус компонентів</h2>
+                <div id="diagnostics" class="space-y-2 text-sm">
+                    <div>🔄 Перевіряю...</div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-4">
+                <h2 class="font-semibold mb-2">🔧 Швидкий тест</h2>
+                <button id="quickTest" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm">
+                    Провести швидкий тест
+                </button>
+                <div id="quickTestResult" class="mt-2 text-sm"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="supabaseConfig.js"></script>
+    <script src="dataService.js"></script>
+    
+    <script>
+        async function runDiagnostics() {
+            const diagnosticsDiv = document.getElementById('diagnostics');
+            const results = [];
+            
+            // Перевірка Supabase SDK
+            if (typeof window.supabase !== 'undefined') {
+                results.push('✅ Supabase SDK завантажено');
+            } else {
+                results.push('❌ Supabase SDK не завантажено');
+            }
+            
+            // Перевірка конфігурації
+            if (typeof SUPABASE_CONFIG !== 'undefined') {
+                results.push('✅ Конфігурація Supabase доступна');
+                results.push(`📊 URL: ${SUPABASE_CONFIG.url}`);
+                results.push(`📊 Таблиці: ${Object.keys(SUPABASE_CONFIG.tables).join(', ')}`);
+            } else {
+                results.push('❌ Конфігурація Supabase не завантажена');
+            }
+            
+            // Перевірка ініціалізації Supabase
+            try {
+                const isReady = initSupabase();
+                if (isReady) {
+                    results.push('✅ Supabase клієнт ініціалізовано');
+                } else {
+                    results.push('❌ Помилка ініціалізації Supabase клієнта');
+                }
+            } catch (error) {
+                results.push(`❌ Помилка ініціалізації: ${error.message}`);
+            }
+            
+            // Перевірка DataService
+            try {
+                const dataService = new DataService();
+                results.push('✅ DataService створено');
+                
+                // Чекаємо ініціалізацію
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                if (dataService.supabaseReady) {
+                    results.push('✅ DataService готовий до роботи');
+                } else {
+                    results.push('⚠️ DataService ще ініціалізується...');
+                }
+            } catch (error) {
+                results.push(`❌ Помилка DataService: ${error.message}`);
+            }
+            
+            diagnosticsDiv.innerHTML = results.map(r => `<div>${r}</div>`).join('');
+        }
+        
+        document.getElementById('quickTest').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('quickTestResult');
+            resultDiv.innerHTML = '<div class="text-blue-600">🔄 Проводжу тест...</div>';
+            
+            try {
+                const dataService = new DataService();
+                
+                // Чекаємо готовність
+                let attempts = 0;
+                while (!dataService.supabaseReady && attempts < 10) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    attempts++;
+                }
+                
+                if (!dataService.supabaseReady) {
+                    throw new Error('DataService не готовий після очікування');
+                }
+                
+                // Тестуємо основні операції
+                const cards = await dataService.getCards();
+                const archivedCards = await dataService.getArchivedCards();
+                
+                resultDiv.innerHTML = `
+                    <div class="text-green-600">
+                        <div>✅ Тест пройдено успішно!</div>
+                        <div>📊 Активних карток: ${cards.length}</div>
+                        <div>📦 Архівних карток: ${archivedCards.length}</div>
+                        <div>⏱️ Час відповіді: ${Date.now() % 1000}мс</div>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="text-red-600">❌ Тест не пройдено: ${error.message}</div>`;
+            }
+        });
+        
+        // Автоматична діагностика при завантаженні
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(runDiagnostics, 500);
+        });
+    </script>
+</body>
+</html>

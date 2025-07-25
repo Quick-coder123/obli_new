@@ -50,7 +50,7 @@
             resultDiv.innerHTML = '<p class="text-blue-600">Створюємо тестову картку...</p>';
             
             try {
-                await dataServiceInstance.initialize();
+                await dataServiceInstance.init();
                 
                 const testCard = {
                     fullName: 'Тестовий Користувач ' + Date.now(),
@@ -101,7 +101,7 @@
             resultDiv.innerHTML = '<p class="text-blue-600">Тестуємо переміщення в архів...</p>';
             
             try {
-                await dataServiceInstance.initialize();
+                await dataServiceInstance.init();
                 
                 // Знаходимо тестову картку
                 const cards = await dataServiceInstance.getCards();
@@ -160,7 +160,7 @@
             resultDiv.innerHTML = '<p class="text-blue-600">Завантажуємо стан системи...</p>';
             
             try {
-                await dataServiceInstance.initialize();
+                await dataServiceInstance.init();
                 
                 const cards = await dataServiceInstance.getCards();
                 const archivedCards = await dataServiceInstance.getArchivedCards();

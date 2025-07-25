@@ -39,7 +39,8 @@
             resultDiv.innerHTML = '<p class="text-blue-600">Перевіряємо підключення...</p>';
             
             try {
-                await dataServiceInstance.initialize();
+                await dataServiceInstance.init();
+                
                 const cards = await dataServiceInstance.getCards();
                 const archivedCards = await dataServiceInstance.getArchivedCards();
                 

@@ -41,7 +41,7 @@
             resultDiv.innerHTML = '<p class="text-blue-600">Перевіряємо стан системи...</p>';
             
             try {
-                await dataServiceInstance.initialize();
+                await dataServiceInstance.init();
                 
                 const cards = await dataServiceInstance.getCards();
                 const archivedCards = await dataServiceInstance.getArchivedCards();
@@ -92,7 +92,7 @@
             resultDiv.innerHTML = '<p class="text-blue-600">Симулюємо редагування...</p>';
             
             try {
-                await dataServiceInstance.initialize();
+                await dataServiceInstance.init();
                 const archivedCards = await dataServiceInstance.getArchivedCards();
                 
                 if (archivedCards.length === 0) {

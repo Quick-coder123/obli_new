@@ -15,7 +15,7 @@ class CardManager {
             // Ініціалізуємо сервіс даних
             if (!dataService) {
                 dataService = new DataService();
-                await dataService.initialize();
+                await dataService.init();
             }
             
             this.bindEvents();
