@@ -30,31 +30,24 @@ class DataService {
     showConnectionError() {
         // Показуємо користувачу повідомлення про помилку
         const errorDiv = document.createElement('div');
-        errorDiv.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white p-6 rounded-lg shadow-lg z-50 max-w-lg';
+        errorDiv.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
         errorDiv.innerHTML = `
-            <div class="text-center">
-                <span class="text-2xl mb-2 block">❌</span>
+            <div class="flex items-center">
+                <span class="mr-2">❌</span>
                 <div>
-                    <strong class="block mb-2">Помилка підключення до Supabase</strong>
-                    <div class="text-sm mb-4">
-                        <p>Можливі причини:</p>
-                        <ul class="text-left mt-2">
-                            <li>• Таблиці не створені в Supabase</li>
-                            <li>• Неправильні налаштування підключення</li>
-                            <li>• Проблеми з інтернет-з'єднанням</li>
-                        </ul>
-                    </div>
-                    <div class="text-sm bg-yellow-500 bg-opacity-20 p-3 rounded mb-4">
-                        <strong>Рішення:</strong><br>
-                        Перейдіть в Supabase SQL Editor та виконайте код з файлу <code>supabase_tables.sql</code>
-                    </div>
-                    <button onclick="this.parentElement.parentElement.remove()" class="bg-white text-red-600 px-4 py-2 rounded font-semibold hover:bg-gray-100">
-                        Закрити
-                    </button>
+                    <strong>Помилка підключення до бази даних</strong><br>
+                    <small>Перевірте налаштування Supabase та підключення до інтернету</small>
                 </div>
             </div>
         `;
         document.body.appendChild(errorDiv);
+        
+        // Автоматично приховуємо через 10 секунд
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.parentNode.removeChild(errorDiv);
+            }
+        }, 10000);
     }
 
     // Методи для роботи з активними картками
@@ -83,8 +76,6 @@ class DataService {
             throw new Error('База даних недоступна');
         }
 
-        console.log('🔄 Обробка даних картки:', cardData);
-
         const card = {
             ...cardData,
             accountStatus: this.calculateAccountStatus(cardData.firstDepositDate),
@@ -93,23 +84,17 @@ class DataService {
 
         try {
             const supabaseCard = this.formatCardForSupabase(card);
-            console.log('📤 Відправка в Supabase:', supabaseCard);
-            
             const { data, error } = await supabaseClient
                 .from(SUPABASE_CONFIG.tables.cards)
                 .insert([supabaseCard])
                 .select();
             
-            if (error) {
-                console.error('❌ Supabase помилка:', error);
-                throw error;
-            }
-            
-            console.log('✅ Картку додано успішно:', data[0]);
+            if (error) throw error;
+            console.log('✅ Картку додано успішно');
             return this.formatCardFromSupabase(data[0]);
         } catch (error) {
             console.error('❌ Помилка додавання картки:', error);
-            throw new Error(`Не вдалося додати картку: ${error.message}`);
+            throw new Error('Не вдалося додати картку до бази даних');
         }
     }
 
@@ -219,7 +204,8 @@ class DataService {
 
     // Допоміжні методи для форматування даних
     formatCardForSupabase(card) {
-        const result = {
+        return {
+            id: card.id,
             full_name: card.fullName,
             ipn: card.ipn,
             organization: card.organization,
@@ -230,20 +216,9 @@ class DataService {
             documents: card.documents || {"contract": false, "survey": false, "passport": false},
             account_status: this.translateAccountStatusToEnglish(card.accountStatus),
             created_at: card.createdAt,
-            updated_at: card.updatedAt || new Date().toISOString()
+            updated_at: card.updatedAt || new Date().toISOString(),
+            archived_at: card.archivedAt || null
         };
-        
-        // Додаємо ID тільки якщо він існує (для оновлення)
-        if (card.id) {
-            result.id = card.id;
-        }
-        
-        // Додаємо archived_at тільки якщо він існує
-        if (card.archivedAt) {
-            result.archived_at = card.archivedAt;
-        }
-        
-        return result;
     }
 
     formatCardFromSupabase(supabaseCard) {

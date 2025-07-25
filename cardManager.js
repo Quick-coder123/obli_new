@@ -227,13 +227,15 @@ class CardManager {
 
     async addCard(cardData) {
         try {
+            console.log('🔄 Додавання картки:', cardData);
             const card = await dataService.addCard(cardData);
             this.cards.push(card);
+            await this.loadTable(); // Перезавантажуємо таблицю
             await this.checkForAutoArchive(card);
-            this.showNotification('Картку додано успішно', 'success');
+            this.showSuccess('Картку додано успішно');
         } catch (error) {
-            console.error('Помилка додавання картки:', error);
-            this.showNotification('Помилка додавання картки', 'error');
+            console.error('❌ Помилка додавання картки:', error);
+            this.showError(`Помилка додавання картки: ${error.message}`);
         }
     }
 
