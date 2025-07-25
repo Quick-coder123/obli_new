@@ -462,7 +462,14 @@ class CardManager {
 
     // Метод для отримання всіх карток (активних + архівних) для звітів
     async getAllCards() {
-        return await dataService.getAllCards();
+        try {
+            const activeCards = await dataService.getCards();
+            const archivedCards = await dataService.getArchivedCards();
+            return [...activeCards, ...archivedCards];
+        } catch (error) {
+            console.error('❌ Помилка отримання всіх карток:', error);
+            return [];
+        }
     }
 
     // Метод для отримання тільки архівних карток

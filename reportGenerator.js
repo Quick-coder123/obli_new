@@ -9,20 +9,36 @@ class ReportGenerator {
     }
 
     async init() {
-        // Ініціалізуємо сервіс даних
-        if (!dataService) {
-            dataService = new DataService();
-            await dataService.init();
+        try {
+            // Ініціалізуємо сервіс даних
+            if (!dataService) {
+                dataService = new DataService();
+                await dataService.init();
+            }
+            
+            this.bindEvents();
+            await this.loadData();
+            this.populateYearFilters();
+            this.generateAllReports();
+            console.log('✅ ReportGenerator ініціалізовано успішно');
+        } catch (error) {
+            console.error('❌ Помилка ініціалізації ReportGenerator:', error);
         }
-        
-        this.bindEvents();
-        await this.loadData();
-        this.populateYearFilters();
-        this.generateAllReports();
     }
     
     async loadData() {
-        this.allCards = await dataService.getAllCards();
+        try {
+            // Завантажуємо активні та архівні картки
+            const activeCards = await dataService.getCards();
+            const archivedCards = await dataService.getArchivedCards();
+            
+            // Об'єднуємо всі картки
+            this.allCards = [...activeCards, ...archivedCards];
+            console.log('✅ Дані для звітів завантажено:', this.allCards.length, 'карток');
+        } catch (error) {
+            console.error('❌ Помилка завантаження даних для звітів:', error);
+            this.allCards = [];
+        }
     }
 
     bindEvents() {
