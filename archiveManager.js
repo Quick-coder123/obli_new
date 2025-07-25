@@ -203,12 +203,13 @@ class ArchiveManager {
     async checkArchiveStatus(card) {
         console.log('🔍 Перевірка статусу архівної картки:', card);
         
+        // Картка повинна залишатися в архіві тільки якщо ВСІ умови виконані
         const shouldStayInArchive = 
             card.accountStatus === 'Активний' &&
-            card.cardStatus === 'Видана' &&
-            card.documents?.contract &&
-            card.documents?.survey &&
-            card.documents?.passport;
+            card.cardStatus === 'Видано' &&
+            card.documents?.contract === true &&
+            card.documents?.survey === true &&
+            card.documents?.passport === true;
 
         console.log('📋 Умови архівування:', {
             accountStatus: card.accountStatus,
@@ -221,6 +222,8 @@ class ArchiveManager {
 
         if (!shouldStayInArchive) {
             try {
+                console.log('🔄 Картка не відповідає умовам архівування, переміщуємо назад...');
+                
                 // Переміщуємо назад в активні картки через Supabase
                 await this.moveFromArchive(card);
                 
@@ -236,7 +239,7 @@ class ArchiveManager {
                 this.showNotification('Помилка переміщення картки', 'error');
             }
         } else {
-            console.log('✅ Картка залишається в архіві');
+            console.log('✅ Картка залишається в архіві (всі умови виконані)');
         }
     }
 
@@ -248,12 +251,20 @@ class ArchiveManager {
         console.log('🔄 Починаємо переміщення з архіву:', card);
 
         try {
-            // Додаємо назад в активні картки
+            // Підготовляємо картку для активних (без ID, щоб створити нову)
             const activeCard = {
-                ...card
+                fullName: card.fullName,
+                ipn: card.ipn,
+                organization: card.organization,
+                accountOpenDate: card.accountOpenDate,
+                firstDepositDate: card.firstDepositDate,
+                cardStatus: card.cardStatus,
+                comment: card.comment,
+                documents: card.documents,
+                accountStatus: card.accountStatus,
+                createdAt: card.createdAt,
+                updatedAt: new Date().toISOString()
             };
-            delete activeCard.archivedAt; // Видаляємо дату архівування
-            delete activeCard.movedFromArchive; // Видаляємо якщо є
 
             console.log('📤 Підготовлена картка для активних:', activeCard);
             

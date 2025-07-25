@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест архіву</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-6">Тест архіву</h1>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Перевірка підключення</h2>
+            <button id="testConnection" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Перевірити підключення
+            </button>
+            <div id="connectionResult" class="mt-4"></div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mt-6">
+            <h2 class="text-xl font-semibold mb-4">Тест операцій з архівом</h2>
+            <button id="testArchive" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                Тестувати архів
+            </button>
+            <div id="archiveResult" class="mt-4"></div>
+        </div>
+    </div>
+
+    <script src="supabaseConfig.js"></script>
+    <script src="dataService.js"></script>
+    
+    <script>
+        const dataServiceInstance = new DataService();
+        
+        document.getElementById('testConnection').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('connectionResult');
+            resultDiv.innerHTML = '<p class="text-blue-600">Перевіряємо підключення...</p>';
+            
+            try {
+                await dataServiceInstance.initialize();
+                const cards = await dataServiceInstance.getCards();
+                const archivedCards = await dataServiceInstance.getArchivedCards();
+                
+                resultDiv.innerHTML = `
+                    <div class="text-green-600">
+                        <p>✅ Підключення успішне!</p>
+                        <p>Активних карток: ${cards.length}</p>
+                        <p>Архівних карток: ${archivedCards.length}</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="text-red-600">❌ Помилка: ${error.message}</p>`;
+            }
+        });
+        
+        document.getElementById('testArchive').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('archiveResult');
+            resultDiv.innerHTML = '<p class="text-blue-600">Тестуємо архів...</p>';
+            
+            try {
+                // Отримуємо архівні картки
+                const archivedCards = await dataServiceInstance.getArchivedCards();
+                
+                if (archivedCards.length === 0) {
+                    resultDiv.innerHTML = '<p class="text-yellow-600">⚠️ Немає карток в архіві для тестування</p>';
+                    return;
+                }
+                
+                const testCard = archivedCards[0];
+                console.log('Тестова картка:', testCard);
+                
+                // Перевіряємо логіку архівування
+                const shouldStayInArchive = 
+                    testCard.accountStatus === 'Активний' &&
+                    testCard.cardStatus === 'Видано' &&
+                    testCard.documents?.contract === true &&
+                    testCard.documents?.survey === true &&
+                    testCard.documents?.passport === true;
+                
+                resultDiv.innerHTML = `
+                    <div class="space-y-2">
+                        <p><strong>Тестова картка:</strong> ${testCard.fullName}</p>
+                        <p><strong>Статус рахунку:</strong> ${testCard.accountStatus}</p>
+                        <p><strong>Статус картки:</strong> ${testCard.cardStatus}</p>
+                        <p><strong>Документи:</strong></p>
+                        <ul class="ml-4">
+                            <li>Договір: ${testCard.documents?.contract ? '✅' : '❌'}</li>
+                            <li>Опитувальник: ${testCard.documents?.survey ? '✅' : '❌'}</li>
+                            <li>Паспорт: ${testCard.documents?.passport ? '✅' : '❌'}</li>
+                        </ul>
+                        <p><strong>Повинна залишатися в архіві:</strong> ${shouldStayInArchive ? '✅ Так' : '❌ Ні'}</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="text-red-600">❌ Помилка тестування: ${error.message}</p>`;
+                console.error('Помилка тестування:', error);
+            }
+        });
+    </script>
+</body>
+</html>

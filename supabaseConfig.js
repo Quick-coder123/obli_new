@@ -6,7 +6,7 @@ const SUPABASE_CONFIG = {
     // Назви таблиць
     tables: {
         cards: 'cards',
-        archivedCards: 'archived_cards'
+        archivedCards: 'archivedCards'
     }
 };
 

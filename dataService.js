@@ -289,8 +289,8 @@ class DataService {
             updated_at: card.updatedAt || new Date().toISOString()
         };
         
-        // Додаємо ID тільки якщо він існує (для оновлення)
-        if (card.id) {
+        // Додаємо ID тільки якщо він існує та ми не створюємо нову картку
+        if (card.id && card.updateExisting !== false) {
             result.id = card.id;
         }
         
