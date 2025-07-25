@@ -241,7 +241,7 @@ class CardManager {
 
     getFormData() {
         const firstDepositDate = document.getElementById('firstDepositDate').value;
-        return {
+        const formData = {
             fullName: document.getElementById('fullName').value,
             ipn: document.getElementById('ipn').value,
             organization: document.getElementById('organization').value,
@@ -256,6 +256,9 @@ class CardManager {
                 passport: document.getElementById('docPassport').checked
             }
         };
+        
+        console.log('📋 Сформовані дані форми:', formData);
+        return formData;
     }
 
     async addCard(cardData) {
@@ -312,21 +315,22 @@ class CardManager {
     }
 
     async checkForAutoArchive(card) {
+        console.log('🔍 Початок перевірки автоматичного архівування для картки:', card);
         
         const shouldArchive = 
             card.accountStatus === 'Активний' &&
-            card.cardStatus === 'Видано' &&
+            card.cardStatus === 'Видана' &&  // Виправлено з "Видано" на "Видана"
             card.documents?.contract === true &&
             card.documents?.survey === true &&
             card.documents?.passport === true;
 
-        console.log('� Детальна перевірка умов архівування:', {
+        console.log('📊 Детальна перевірка умов архівування:', {
             cardId: card.id,
             fullName: card.fullName,
             accountStatus: card.accountStatus,
             accountStatusCheck: card.accountStatus === 'Активний',
             cardStatus: card.cardStatus,
-            cardStatusCheck: card.cardStatus === 'Видано',
+            cardStatusCheck: card.cardStatus === 'Видана',  // Виправлено
             documents: card.documents,
             contractCheck: card.documents?.contract === true,
             surveyCheck: card.documents?.survey === true,
@@ -335,17 +339,20 @@ class CardManager {
         });
 
         if (shouldArchive) {
+            console.log('✅ Всі умови виконані, переміщуємо в архів...');
             try {
                 await dataService.moveToArchive(card);
                 this.cards = this.cards.filter(c => c.id !== card.id);
                 this.showNotification('Картку автоматично переміщено в архів', 'success');
                 await this.loadTable();
                 await this.populateFilters();
+                console.log('✅ Картку успішно переміщено в архів');
             } catch (error) {
                 console.error('❌ Помилка автоматичного архівування:', error);
                 this.showNotification(`Помилка автоматичного архівування: ${error.message}`, 'error');
             }
         } else {
+            console.log('❌ Умови архівування не виконані');
         }
     }
 
