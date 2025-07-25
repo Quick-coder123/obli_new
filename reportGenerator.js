@@ -20,7 +20,6 @@ class ReportGenerator {
             await this.loadData();
             this.populateYearFilters();
             this.generateAllReports();
-            console.log('✅ ReportGenerator ініціалізовано успішно');
         } catch (error) {
             console.error('❌ Помилка ініціалізації ReportGenerator:', error);
         }
@@ -368,7 +367,6 @@ let reportGenerator;
 document.addEventListener('DOMContentLoaded', () => {
     // Чекаємо трохи, щоб всі скрипти завантажились
     setTimeout(() => {
-        console.log('📊 Ініціалізація ReportGenerator...');
         reportGenerator = new ReportGenerator();
     }, 200);
 });

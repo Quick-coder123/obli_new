@@ -1,7 +1,6 @@
-// Глобальна змінна для сервісу даних
 let dataService;
 
-// Менеджер архіву - логіка для роботи з архівними картками
+// Менеджер архіву
 class ArchiveManager {
     constructor() {
         this.archivedCards = [];

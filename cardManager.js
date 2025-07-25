@@ -1,7 +1,6 @@
-// Глобальна змінна для сервісу даних
 let dataService;
 
-// Менеджер карток - основна логіка для роботи з картками
+// Менеджер карток
 class CardManager {
     constructor() {
         this.cards = [];
@@ -12,7 +11,6 @@ class CardManager {
 
     async init() {
         try {
-            // Ініціалізуємо сервіс даних
             if (!dataService) {
                 dataService = new DataService();
                 await dataService.init();
@@ -21,7 +19,6 @@ class CardManager {
             this.bindEvents();
             await this.loadTable();
             await this.populateFilters();
-            console.log('✅ CardManager ініціалізовано успішно');
         } catch (error) {
             console.error('❌ Помилка ініціалізації CardManager:', error);
             this.showError('Помилка ініціалізації системи');
@@ -243,14 +240,16 @@ class CardManager {
     }
 
     getFormData() {
+        const firstDepositDate = document.getElementById('firstDepositDate').value;
         return {
             fullName: document.getElementById('fullName').value,
             ipn: document.getElementById('ipn').value,
             organization: document.getElementById('organization').value,
             accountOpenDate: document.getElementById('accountOpenDate').value,
-            firstDepositDate: document.getElementById('firstDepositDate').value,
+            firstDepositDate: firstDepositDate,
             cardStatus: document.getElementById('cardStatus').value,
             comment: document.getElementById('comment').value,
+            accountStatus: this.calculateAccountStatus(firstDepositDate), // Додаємо розрахунок статусу
             documents: {
                 contract: document.getElementById('docContract').checked,
                 survey: document.getElementById('docSurvey').checked,
@@ -313,6 +312,7 @@ class CardManager {
     }
 
     async checkForAutoArchive(card) {
+        
         const shouldArchive = 
             card.accountStatus === 'Активний' &&
             card.cardStatus === 'Видано' &&
@@ -320,18 +320,22 @@ class CardManager {
             card.documents?.survey === true &&
             card.documents?.passport === true;
 
-        console.log('🔍 Перевірка на автоархівування:', {
+        console.log('� Детальна перевірка умов архівування:', {
             cardId: card.id,
             fullName: card.fullName,
             accountStatus: card.accountStatus,
+            accountStatusCheck: card.accountStatus === 'Активний',
             cardStatus: card.cardStatus,
+            cardStatusCheck: card.cardStatus === 'Видано',
             documents: card.documents,
+            contractCheck: card.documents?.contract === true,
+            surveyCheck: card.documents?.survey === true,
+            passportCheck: card.documents?.passport === true,
             shouldArchive
         });
 
         if (shouldArchive) {
             try {
-                console.log('📦 Переміщуємо картку в архів:', card.fullName);
                 await dataService.moveToArchive(card);
                 this.cards = this.cards.filter(c => c.id !== card.id);
                 this.showNotification('Картку автоматично переміщено в архів', 'success');
@@ -341,6 +345,7 @@ class CardManager {
                 console.error('❌ Помилка автоматичного архівування:', error);
                 this.showNotification(`Помилка автоматичного архівування: ${error.message}`, 'error');
             }
+        } else {
         }
     }
 

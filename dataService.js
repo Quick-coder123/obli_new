@@ -1,4 +1,4 @@
-// Сервіс для роботи з даними (виключно Supabase)
+// Сервіс для роботи з даними
 class DataService {
     constructor() {
         this.supabaseReady = false;
@@ -93,7 +93,6 @@ class DataService {
 
         try {
             const supabaseCard = this.formatCardForSupabase(card);
-            console.log('📤 Відправка в Supabase:', supabaseCard);
             
             const { data, error } = await supabaseClient
                 .from(SUPABASE_CONFIG.tables.cards)
@@ -196,7 +195,6 @@ class DataService {
 
         try {
             const supabaseCard = this.formatCardForSupabase(updatedCard);
-            console.log('📤 Відправка оновлення архівної картки в Supabase:', supabaseCard);
             
             const { data, error } = await supabaseClient
                 .from(SUPABASE_CONFIG.tables.archivedCards)
@@ -260,10 +258,8 @@ class DataService {
                 archivedAt: new Date().toISOString()
             };
             
-            console.log('📤 Підготовлена картка для архіву:', archivedCard);
             
             const supabaseArchivedCard = this.formatCardForSupabase(archivedCard);
-            console.log('📤 Форматована картка для архіву Supabase:', supabaseArchivedCard);
             
             const { error: insertError } = await supabaseClient
                 .from(SUPABASE_CONFIG.tables.archivedCards)
