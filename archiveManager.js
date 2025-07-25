@@ -14,7 +14,7 @@ class ArchiveManager {
             // Ініціалізуємо сервіс даних
             if (!dataService) {
                 dataService = new DataService();
-                await dataService.init();
+                await dataService.initialize();
             }
             
             this.bindEvents();

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Комплексний тест системи карток</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-6 text-center">🧪 Комплексний тест системи карток</h1>
+        
+        <!-- Статус системи -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">📊 Статус системи</h2>
+            <div id="systemStatus" class="text-gray-500">Натисніть "Перевірити систему"</div>
+            <button id="checkSystem" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Перевірити систему
+            </button>
+        </div>
+
+        <!-- Тести -->
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Тест 1: Створення картки -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-4">🆕 Тест 1: Створення картки</h3>
+                <button id="test1" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mb-4">
+                    Створити тестову картку
+                </button>
+                <div id="test1Result" class="text-sm"></div>
+            </div>
+
+            <!-- Тест 2: Архівування -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-4">📦 Тест 2: Архівування</h3>
+                <button id="test2" class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 mb-4">
+                    Тест автоархівування
+                </button>
+                <div id="test2Result" class="text-sm"></div>
+            </div>
+
+            <!-- Тест 3: Редагування архіву -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-4">✏️ Тест 3: Редагування архіву</h3>
+                <button id="test3" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 mb-4">
+                    Тест редагування архіву
+                </button>
+                <div id="test3Result" class="text-sm"></div>
+            </div>
+
+            <!-- Тест 4: Переміщення з архіву -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-4">🔄 Тест 4: Переміщення з архіву</h3>
+                <button id="test4" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 mb-4">
+                    Тест переміщення з архіву
+                </button>
+                <div id="test4Result" class="text-sm"></div>
+            </div>
+
+            <!-- Тест 5: Видалення -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-4">🗑️ Тест 5: Видалення</h3>
+                <button id="test5" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 mb-4">
+                    Тест видалення
+                </button>
+                <div id="test5Result" class="text-sm"></div>
+            </div>
+
+            <!-- Очищення -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold mb-4">🧹 Очищення</h3>
+                <button id="cleanup" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 mb-4">
+                    Очистити тестові дані
+                </button>
+                <div id="cleanupResult" class="text-sm"></div>
+            </div>
+        </div>
+
+        <!-- Логи -->
+        <div class="bg-black text-green-400 rounded-lg shadow p-6 mt-6">
+            <h3 class="text-lg font-semibold mb-4">📋 Логи системи</h3>
+            <div id="logs" class="font-mono text-sm max-h-96 overflow-y-auto whitespace-pre-wrap"></div>
+            <button id="clearLogs" class="mt-4 bg-gray-600 text-white px-3 py-1 rounded text-sm">
+                Очистити логи
+            </button>
+        </div>
+    </div>
+
+    <script src="supabaseConfig.js"></script>
+    <script src="dataService.js"></script>
+    
+    <script>
+        const dataServiceInstance = new DataService();
+        let testCards = [];
+        
+        // Логування
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString('uk-UA');
+            const logDiv = document.getElementById('logs');
+            const typeEmoji = {
+                'info': 'ℹ️',
+                'success': '✅',
+                'error': '❌',
+                'warning': '⚠️'
+            };
+            logDiv.textContent += `[${timestamp}] ${typeEmoji[type]} ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Показати результат тесту
+        function showResult(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="p-3 rounded ${isSuccess ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${message}</div>`;
+        }
+
+        // Перевірка системи
+        document.getElementById('checkSystem').addEventListener('click', async () => {
+            const statusDiv = document.getElementById('systemStatus');
+            statusDiv.innerHTML = '<p class="text-blue-600">🔄 Перевіряю систему...</p>';
+            log('Початок перевірки системи...');
+            
+            try {
+                await dataServiceInstance.initialize();
+                log('DataService ініціалізовано', 'success');
+                
+                // Перевірка таблиць
+                const cards = await dataServiceInstance.getCards();
+                const archivedCards = await dataServiceInstance.getArchivedCards();
+                
+                log(`Знайдено активних карток: ${cards.length}`, 'success');
+                log(`Знайдено архівних карток: ${archivedCards.length}`, 'success');
+                
+                statusDiv.innerHTML = `
+                    <div class="text-green-600">
+                        <p>✅ Система працює нормально!</p>
+                        <p>📊 Активних карток: ${cards.length}</p>
+                        <p>📦 Архівних карток: ${archivedCards.length}</p>
+                        <p>🔗 Supabase підключено: ${dataServiceInstance.supabaseReady ? '✅' : '❌'}</p>
+                    </div>
+                `;
+            } catch (error) {
+                log(`Помилка перевірки системи: ${error.message}`, 'error');
+                statusDiv.innerHTML = `<p class="text-red-600">❌ Помилка: ${error.message}</p>`;
+            }
+        });
+
+        // Тест 1: Створення картки
+        document.getElementById('test1').addEventListener('click', async () => {
+            log('=== ТЕСТ 1: Створення картки ===');
+            
+            try {
+                await dataServiceInstance.initialize();
+                
+                const testCard = {
+                    fullName: `Тест Користувач ${Date.now()}`,
+                    ipn: '1234567890',
+                    organization: 'Тестова Організація',
+                    accountOpenDate: '2025-07-01',
+                    firstDepositDate: null, // Спочатку неактивний
+                    cardStatus: 'Виготовляється',
+                    comment: 'Тестова картка',
+                    documents: {
+                        contract: false,
+                        survey: false,
+                        passport: false
+                    }
+                };
+                
+                const createdCard = await dataServiceInstance.addCard(testCard);
+                testCards.push(createdCard);
+                
+                log(`Картку створено: ${createdCard.fullName} (ID: ${createdCard.id})`, 'success');
+                showResult('test1Result', `✅ Картку створено: ${createdCard.fullName}<br>ID: ${createdCard.id}<br>Статус: ${createdCard.accountStatus}`);
+                
+            } catch (error) {
+                log(`Помилка створення картки: ${error.message}`, 'error');
+                showResult('test1Result', `❌ Помилка: ${error.message}`, false);
+            }
+        });
+
+        // Тест 2: Архівування
+        document.getElementById('test2').addEventListener('click', async () => {
+            log('=== ТЕСТ 2: Архівування ===');
+            
+            if (testCards.length === 0) {
+                showResult('test2Result', '⚠️ Спочатку створіть тестову картку', false);
+                return;
+            }
+            
+            try {
+                // Підготовляємо картку для архівування
+                const card = testCards[testCards.length - 1];
+                const updatedCard = {
+                    ...card,
+                    firstDepositDate: '2025-07-25', // Активуємо
+                    cardStatus: 'Видано', // Змінюємо статус
+                    documents: {
+                        contract: true,
+                        survey: true,
+                        passport: true
+                    }
+                };
+                
+                // Оновлюємо картку
+                await dataServiceInstance.updateCard(card.id, updatedCard);
+                log(`Картку оновлено для архівування: ${card.fullName}`, 'success');
+                
+                // Перевіряємо умови архівування
+                const shouldArchive = 
+                    updatedCard.accountStatus === 'Активний' &&
+                    updatedCard.cardStatus === 'Видано' &&
+                    updatedCard.documents?.contract === true &&
+                    updatedCard.documents?.survey === true &&
+                    updatedCard.documents?.passport === true;
+                
+                log(`Умови архівування: ${shouldArchive ? 'виконані' : 'не виконані'}`, shouldArchive ? 'success' : 'warning');
+                
+                if (shouldArchive) {
+                    // Переміщуємо в архів
+                    await dataServiceInstance.moveToArchive(updatedCard);
+                    log(`Картку переміщено в архів: ${updatedCard.fullName}`, 'success');
+                    showResult('test2Result', `✅ Картку успішно архівовано: ${updatedCard.fullName}`);
+                } else {
+                    showResult('test2Result', '⚠️ Картка не відповідає умовам архівування', false);
+                }
+                
+            } catch (error) {
+                log(`Помилка архівування: ${error.message}`, 'error');
+                showResult('test2Result', `❌ Помилка: ${error.message}`, false);
+            }
+        });
+
+        // Тест 3: Редагування архіву
+        document.getElementById('test3').addEventListener('click', async () => {
+            log('=== ТЕСТ 3: Редагування архіву ===');
+            
+            try {
+                const archivedCards = await dataServiceInstance.getArchivedCards();
+                
+                if (archivedCards.length === 0) {
+                    showResult('test3Result', '⚠️ Немає карток в архіві для тестування', false);
+                    return;
+                }
+                
+                const card = archivedCards[0];
+                const updatedData = {
+                    ...card,
+                    comment: `Оновлено ${new Date().toLocaleTimeString('uk-UA')}`,
+                    documents: {
+                        contract: false, // Змінюємо документ
+                        survey: card.documents?.survey || false,
+                        passport: card.documents?.passport || false
+                    }
+                };
+                
+                const updatedCard = await dataServiceInstance.updateArchivedCard(card.id, updatedData);
+                log(`Архівну картку оновлено: ${updatedCard.fullName}`, 'success');
+                
+                showResult('test3Result', `✅ Архівну картку оновлено: ${updatedCard.fullName}<br>Новий коментар: ${updatedCard.comment}`);
+                
+            } catch (error) {
+                log(`Помилка редагування архіву: ${error.message}`, 'error');
+                showResult('test3Result', `❌ Помилка: ${error.message}`, false);
+            }
+        });
+
+        // Тест 4: Переміщення з архіву
+        document.getElementById('test4').addEventListener('click', async () => {
+            log('=== ТЕСТ 4: Переміщення з архіву ===');
+            
+            try {
+                const archivedCards = await dataServiceInstance.getArchivedCards();
+                
+                if (archivedCards.length === 0) {
+                    showResult('test4Result', '⚠️ Немає карток в архіві для тестування', false);
+                    return;
+                }
+                
+                const card = archivedCards[0];
+                log(`Переміщуємо з архіву: ${card.fullName}`, 'info');
+                
+                // Створюємо нову активну картку (без ID архівної)
+                const activeCard = {
+                    fullName: card.fullName,
+                    ipn: card.ipn,
+                    organization: card.organization,
+                    accountOpenDate: card.accountOpenDate,
+                    firstDepositDate: card.firstDepositDate,
+                    cardStatus: card.cardStatus,
+                    comment: card.comment + ' (переміщена з архіву)',
+                    documents: card.documents,
+                    accountStatus: card.accountStatus,
+                    createdAt: card.createdAt,
+                    updatedAt: new Date().toISOString()
+                };
+                
+                // Додаємо в активні
+                const newActiveCard = await dataServiceInstance.addCard(activeCard);
+                log(`Картку додано в активні: ${newActiveCard.fullName}`, 'success');
+                
+                // Видаляємо з архіву
+                await dataServiceInstance.deleteArchivedCard(card.id);
+                log(`Картку видалено з архіву: ${card.fullName}`, 'success');
+                
+                showResult('test4Result', `✅ Картку переміщено з архіву: ${card.fullName}<br>Новий ID: ${newActiveCard.id}`);
+                
+            } catch (error) {
+                log(`Помилка переміщення з архіву: ${error.message}`, 'error');
+                showResult('test4Result', `❌ Помилка: ${error.message}`, false);
+            }
+        });
+
+        // Тест 5: Видалення
+        document.getElementById('test5').addEventListener('click', async () => {
+            log('=== ТЕСТ 5: Видалення ===');
+            
+            try {
+                const cards = await dataServiceInstance.getCards();
+                const archivedCards = await dataServiceInstance.getArchivedCards();
+                
+                let deleted = 0;
+                
+                // Видаляємо тестові активні картки
+                for (const card of cards) {
+                    if (card.fullName.includes('Тест')) {
+                        await dataServiceInstance.deleteCard(card.id);
+                        log(`Видалено активну картку: ${card.fullName}`, 'success');
+                        deleted++;
+                    }
+                }
+                
+                // Видаляємо тестові архівні картки
+                for (const card of archivedCards) {
+                    if (card.fullName.includes('Тест')) {
+                        await dataServiceInstance.deleteArchivedCard(card.id);
+                        log(`Видалено архівну картку: ${card.fullName}`, 'success');
+                        deleted++;
+                    }
+                }
+                
+                showResult('test5Result', `✅ Видалено ${deleted} тестових карток`);
+                testCards = [];
+                
+            } catch (error) {
+                log(`Помилка видалення: ${error.message}`, 'error');
+                showResult('test5Result', `❌ Помилка: ${error.message}`, false);
+            }
+        });
+
+        // Очищення тестових даних
+        document.getElementById('cleanup').addEventListener('click', async () => {
+            log('=== ОЧИЩЕННЯ ТЕСТОВИХ ДАНИХ ===');
+            
+            try {
+                const cards = await dataServiceInstance.getCards();
+                const archivedCards = await dataServiceInstance.getArchivedCards();
+                
+                let cleaned = 0;
+                
+                // Очищаємо активні тестові картки
+                for (const card of cards) {
+                    if (card.fullName.includes('Тест') || card.organization === 'Тестова Організація') {
+                        await dataServiceInstance.deleteCard(card.id);
+                        cleaned++;
+                    }
+                }
+                
+                // Очищаємо архівні тестові картки
+                for (const card of archivedCards) {
+                    if (card.fullName.includes('Тест') || card.organization === 'Тестова Організація') {
+                        await dataServiceInstance.deleteArchivedCard(card.id);
+                        cleaned++;
+                    }
+                }
+                
+                testCards = [];
+                log(`Очищено ${cleaned} тестових записів`, 'success');
+                showResult('cleanupResult', `✅ Очищено ${cleaned} тестових записів`);
+                
+            } catch (error) {
+                log(`Помилка очищення: ${error.message}`, 'error');
+                showResult('cleanupResult', `❌ Помилка: ${error.message}`, false);
+            }
+        });
+
+        // Очистити логи
+        document.getElementById('clearLogs').addEventListener('click', () => {
+            document.getElementById('logs').textContent = '';
+        });
+
+        // Автоматична перевірка при завантаженні
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Сторінка завантажена, готовий до тестування', 'info');
+        });
+    </script>
+</body>
+</html>
