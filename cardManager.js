@@ -315,21 +315,31 @@ class CardManager {
     async checkForAutoArchive(card) {
         const shouldArchive = 
             card.accountStatus === 'Активний' &&
-            card.cardStatus === 'Видана' &&
-            card.documents?.contract &&
-            card.documents?.survey &&
-            card.documents?.passport;
+            card.cardStatus === 'Видано' &&
+            card.documents?.contract === true &&
+            card.documents?.survey === true &&
+            card.documents?.passport === true;
+
+        console.log('🔍 Перевірка на автоархівування:', {
+            cardId: card.id,
+            fullName: card.fullName,
+            accountStatus: card.accountStatus,
+            cardStatus: card.cardStatus,
+            documents: card.documents,
+            shouldArchive
+        });
 
         if (shouldArchive) {
             try {
+                console.log('📦 Переміщуємо картку в архів:', card.fullName);
                 await dataService.moveToArchive(card);
                 this.cards = this.cards.filter(c => c.id !== card.id);
                 this.showNotification('Картку автоматично переміщено в архів', 'success');
                 await this.loadTable();
                 await this.populateFilters();
             } catch (error) {
-                console.error('Помилка автоматичного архівування:', error);
-                this.showNotification('Помилка автоматичного архівування', 'error');
+                console.error('❌ Помилка автоматичного архівування:', error);
+                this.showNotification(`Помилка автоматичного архівування: ${error.message}`, 'error');
             }
         }
     }

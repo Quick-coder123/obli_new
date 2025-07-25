@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест архівування карток</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-6">Тест архівування карток</h1>
+        
+        <div class="grid gap-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">Створення тестової картки</h2>
+                <button id="createTestCard" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    Створити тестову картку
+                </button>
+                <div id="createResult" class="mt-4"></div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">Тест переміщення в архів</h2>
+                <button id="testArchive" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Протестувати архівування
+                </button>
+                <div id="archiveResult" class="mt-4"></div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">Перегляд стану</h2>
+                <button id="viewState" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                    Переглянути стан
+                </button>
+                <div id="stateResult" class="mt-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="supabaseConfig.js"></script>
+    <script src="dataService.js"></script>
+    
+    <script>
+        const dataServiceInstance = new DataService();
+        let testCardId = null;
+        
+        document.getElementById('createTestCard').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('createResult');
+            resultDiv.innerHTML = '<p class="text-blue-600">Створюємо тестову картку...</p>';
+            
+            try {
+                await dataServiceInstance.initialize();
+                
+                const testCard = {
+                    fullName: 'Тестовий Користувач ' + Date.now(),
+                    ipn: '1234567890',
+                    organization: 'Тестова Організація',
+                    accountOpenDate: '2025-07-01',
+                    firstDepositDate: '2025-07-25', // Активний статус
+                    cardStatus: 'Видано', // Видана картка
+                    comment: 'Тестова картка для архівування',
+                    documents: {
+                        contract: true,  // Всі документи є
+                        survey: true,
+                        passport: true
+                    }
+                };
+                
+                const createdCard = await dataServiceInstance.addCard(testCard);
+                testCardId = createdCard.id;
+                
+                resultDiv.innerHTML = `
+                    <div class="text-green-600">
+                        <p>✅ Тестову картку створено!</p>
+                        <p><strong>ID:</strong> ${createdCard.id}</p>
+                        <p><strong>ПІБ:</strong> ${createdCard.fullName}</p>
+                        <p><strong>Статус рахунку:</strong> ${createdCard.accountStatus}</p>
+                        <p><strong>Статус картки:</strong> ${createdCard.cardStatus}</p>
+                        <p><strong>Документи:</strong> 
+                            Договір:${createdCard.documents?.contract ? '✅' : '❌'} 
+                            Опитувальник:${createdCard.documents?.survey ? '✅' : '❌'} 
+                            Паспорт:${createdCard.documents?.passport ? '✅' : '❌'}
+                        </p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="text-red-600">❌ Помилка створення: ${error.message}</p>`;
+                console.error('Помилка створення тестової картки:', error);
+            }
+        });
+        
+        document.getElementById('testArchive').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('archiveResult');
+            
+            if (!testCardId) {
+                resultDiv.innerHTML = '<p class="text-yellow-600">⚠️ Спочатку створіть тестову картку</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p class="text-blue-600">Тестуємо переміщення в архів...</p>';
+            
+            try {
+                await dataServiceInstance.initialize();
+                
+                // Знаходимо тестову картку
+                const cards = await dataServiceInstance.getCards();
+                const testCard = cards.find(c => c.id === testCardId);
+                
+                if (!testCard) {
+                    resultDiv.innerHTML = '<p class="text-red-600">❌ Тестову картку не знайдено</p>';
+                    return;
+                }
+                
+                console.log('Знайдена тестова картка:', testCard);
+                
+                // Перевіряємо умови архівування
+                const shouldArchive = 
+                    testCard.accountStatus === 'Активний' &&
+                    testCard.cardStatus === 'Видано' &&
+                    testCard.documents?.contract === true &&
+                    testCard.documents?.survey === true &&
+                    testCard.documents?.passport === true;
+                
+                if (!shouldArchive) {
+                    resultDiv.innerHTML = `
+                        <p class="text-yellow-600">⚠️ Картка не відповідає умовам архівування:</p>
+                        <ul class="list-disc list-inside mt-2">
+                            <li>Статус рахунку: ${testCard.accountStatus} ${testCard.accountStatus === 'Активний' ? '✅' : '❌'}</li>
+                            <li>Статус картки: ${testCard.cardStatus} ${testCard.cardStatus === 'Видано' ? '✅' : '❌'}</li>
+                            <li>Договір: ${testCard.documents?.contract ? '✅' : '❌'}</li>
+                            <li>Опитувальник: ${testCard.documents?.survey ? '✅' : '❌'}</li>
+                            <li>Паспорт: ${testCard.documents?.passport ? '✅' : '❌'}</li>
+                        </ul>
+                    `;
+                    return;
+                }
+                
+                // Переміщуємо в архів
+                await dataServiceInstance.moveToArchive(testCard);
+                
+                resultDiv.innerHTML = `
+                    <div class="text-green-600">
+                        <p>✅ Картку успішно переміщено в архів!</p>
+                        <p><strong>Картка:</strong> ${testCard.fullName}</p>
+                        <p><strong>Дата архівування:</strong> ${new Date().toLocaleString('uk-UA')}</p>
+                    </div>
+                `;
+                
+                testCardId = null; // Скидаємо ID, оскільки картка в архіві
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="text-red-600">❌ Помилка архівування: ${error.message}</p>`;
+                console.error('Помилка тестування архівування:', error);
+            }
+        });
+        
+        document.getElementById('viewState').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('stateResult');
+            resultDiv.innerHTML = '<p class="text-blue-600">Завантажуємо стан системи...</p>';
+            
+            try {
+                await dataServiceInstance.initialize();
+                
+                const cards = await dataServiceInstance.getCards();
+                const archivedCards = await dataServiceInstance.getArchivedCards();
+                
+                let cardsList = '';
+                if (cards.length > 0) {
+                    cardsList = '<h4 class="font-medium mt-4">Активні картки:</h4><ul class="space-y-1">';
+                    cards.forEach(card => {
+                        cardsList += `<li class="text-sm">• ${card.fullName} (${card.accountStatus}, ${card.cardStatus})</li>`;
+                    });
+                    cardsList += '</ul>';
+                }
+                
+                let archivedList = '';
+                if (archivedCards.length > 0) {
+                    archivedList = '<h4 class="font-medium mt-4">Архівні картки:</h4><ul class="space-y-1">';
+                    archivedCards.forEach(card => {
+                        archivedList += `<li class="text-sm">• ${card.fullName} (архівовано: ${new Date(card.archivedAt || '').toLocaleDateString('uk-UA')})</li>`;
+                    });
+                    archivedList += '</ul>';
+                }
+                
+                resultDiv.innerHTML = `
+                    <div>
+                        <p><strong>Активних карток:</strong> ${cards.length}</p>
+                        <p><strong>Архівних карток:</strong> ${archivedCards.length}</p>
+                        ${cardsList}
+                        ${archivedList}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="text-red-600">❌ Помилка завантаження: ${error.message}</p>`;
+                console.error('Помилка перегляду стану:', error);
+            }
+        });
+    </script>
+</body>
+</html>

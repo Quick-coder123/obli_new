@@ -244,18 +244,37 @@ class DataService {
         }
 
         try {
-            // Додаємо в архів
+            // Підготовляємо картку для архіву (без ID, щоб створити нову)
             const archivedCard = {
-                ...card,
+                fullName: card.fullName,
+                ipn: card.ipn,
+                organization: card.organization,
+                accountOpenDate: card.accountOpenDate,
+                firstDepositDate: card.firstDepositDate,
+                cardStatus: card.cardStatus,
+                comment: card.comment,
+                documents: card.documents,
+                accountStatus: card.accountStatus,
+                createdAt: card.createdAt,
+                updatedAt: new Date().toISOString(),
                 archivedAt: new Date().toISOString()
             };
+            
+            console.log('📤 Підготовлена картка для архіву:', archivedCard);
+            
             const supabaseArchivedCard = this.formatCardForSupabase(archivedCard);
+            console.log('📤 Форматована картка для архіву Supabase:', supabaseArchivedCard);
             
             const { error: insertError } = await supabaseClient
                 .from(SUPABASE_CONFIG.tables.archivedCards)
                 .insert([supabaseArchivedCard]);
             
-            if (insertError) throw insertError;
+            if (insertError) {
+                console.error('❌ Помилка додавання в архів:', insertError);
+                throw insertError;
+            }
+
+            console.log('✅ Картку додано в архів, видаляємо з активних...');
 
             // Видаляємо з активних
             const { error: deleteError } = await supabaseClient
@@ -263,13 +282,16 @@ class DataService {
                 .delete()
                 .eq('id', card.id);
             
-            if (deleteError) throw deleteError;
+            if (deleteError) {
+                console.error('❌ Помилка видалення з активних:', deleteError);
+                throw deleteError;
+            }
             
             console.log('✅ Картку переміщено в архів');
             return true;
         } catch (error) {
             console.error('❌ Помилка переміщення в архів:', error);
-            throw new Error('Не вдалося перемістити картку в архів');
+            throw new Error(`Не вдалося перемістити картку в архів: ${error.message}`);
         }
     }
 
