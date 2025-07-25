@@ -584,29 +584,39 @@ class CardManager {
     async importCardsData(data) {
         let success = 0;
         let errors = 0;
+        const errorDetails = [];
 
-        for (const row of data) {
+        for (const [index, row] of data.entries()) {
             try {
                 // Мапування колонок (підтримка різних варіантів назв)
                 const cardData = this.mapRowToCard(row);
                 
                 // Валідація обов'язкових полів
-                if (!cardData.fullName || !cardData.ipn) {
+                if (!cardData.fullName || !cardData.ipn || !cardData.accountOpenDate) {
                     errors++;
+                    errorDetails.push(`Рядок ${index + 1}: відсутні обов'язкові поля (ПІБ, ІПН, Дата відкриття)`);
                     continue;
                 }
+
+                console.log(`Імпорт рядка ${index + 1}:`, cardData);
 
                 // Збереження в базу даних
                 await dataService.addCard(cardData);
                 success++;
 
             } catch (error) {
-                console.error('Помилка збереження картки:', error);
+                console.error(`Помилка збереження рядка ${index + 1}:`, error);
                 errors++;
+                errorDetails.push(`Рядок ${index + 1}: ${error.message}`);
             }
         }
 
-        return { success, errors };
+        // Показуємо детальні помилки якщо їх небагато
+        if (errorDetails.length > 0 && errorDetails.length <= 5) {
+            console.warn('Деталі помилок імпорту:', errorDetails);
+        }
+
+        return { success, errors, errorDetails };
     }
 
     // Мапування рядка Excel на об'єкт картки
@@ -625,19 +635,20 @@ class CardManager {
             fullName: findValue(['ПІБ', 'PIB', 'Full Name', 'Name', 'Имя']),
             ipn: findValue(['ІПН', 'IPN', 'Tax ID', 'ИНН']),
             organization: findValue(['Організація', 'Organization', 'Организация', 'Company']),
-            openDate: this.parseDate(findValue(['Дата відкриття', 'Open Date', 'Дата открытия', 'Date'])),
-            firstCreditDate: this.parseDate(findValue(['Дата 1-го зарах.', 'First Credit Date', 'Дата первого зач.', 'Credit Date'])),
+            accountOpenDate: this.parseDate(findValue(['Дата відкриття', 'Open Date', 'Дата открытия', 'Date'])),
+            firstDepositDate: this.parseDate(findValue(['Дата 1-го зарах.', 'First Credit Date', 'Дата первого зач.', 'Credit Date'])),
             accountStatus: findValue(['Статус рахунку', 'Account Status', 'Статус счета', 'Status']) || 'Очікує активацію',
             comment: findValue(['Коментар', 'Comment', 'Комментарий', 'Notes']),
             hasContract: false,
             hasSurvey: false,
-            hasPassport: false
+            hasPassport: false,
+            cardStatus: 'Manufacturing'
         };
     }
 
     // Парсинг дати з різних форматів
     parseDate(dateValue) {
-        if (!dateValue) return '';
+        if (!dateValue) return null;
         
         // Якщо це вже Date об'єкт
         if (dateValue instanceof Date) {
@@ -646,6 +657,9 @@ class CardManager {
         
         // Якщо це рядок
         if (typeof dateValue === 'string') {
+            dateValue = dateValue.trim();
+            if (!dateValue) return null;
+            
             // Спроба парсити різні формати
             const formats = [
                 /^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
@@ -653,13 +667,35 @@ class CardManager {
                 /^\d{2}\.\d{2}\.\d{4}$/, // DD.MM.YYYY
             ];
             
-            for (const format of formats) {
-                if (format.test(dateValue)) {
-                    const date = new Date(dateValue);
-                    if (!isNaN(date.getTime())) {
-                        return date.toISOString().split('T')[0];
-                    }
+            // Перевірка форматів
+            if (formats[0].test(dateValue)) {
+                // YYYY-MM-DD - використовуємо як є
+                const date = new Date(dateValue + 'T00:00:00');
+                if (!isNaN(date.getTime())) {
+                    return dateValue;
                 }
+            } else if (formats[1].test(dateValue)) {
+                // DD/MM/YYYY
+                const parts = dateValue.split('/');
+                const isoDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                const date = new Date(isoDate + 'T00:00:00');
+                if (!isNaN(date.getTime())) {
+                    return isoDate;
+                }
+            } else if (formats[2].test(dateValue)) {
+                // DD.MM.YYYY
+                const parts = dateValue.split('.');
+                const isoDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                const date = new Date(isoDate + 'T00:00:00');
+                if (!isNaN(date.getTime())) {
+                    return isoDate;
+                }
+            }
+            
+            // Спроба через стандартний парсер
+            const date = new Date(dateValue);
+            if (!isNaN(date.getTime())) {
+                return date.toISOString().split('T')[0];
             }
         }
         
@@ -671,7 +707,8 @@ class CardManager {
             }
         }
         
-        return '';
+        console.warn('Не вдалося парсити дату:', dateValue);
+        return null;
     }
 
     // Показати повідомлення з різними типами

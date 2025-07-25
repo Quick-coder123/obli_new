@@ -225,10 +225,10 @@ class DataService {
             organization: card.organization,
             account_open_date: card.accountOpenDate,
             first_deposit_date: card.firstDepositDate || null,
-            card_status: this.translateCardStatusToEnglish(card.cardStatus),
+            card_status: this.translateCardStatusToEnglish(card.cardStatus || 'Manufacturing'),
             comment: card.comment || '',
-            documents: card.documents || {"contract": false, "survey": false, "passport": false},
-            account_status: this.translateAccountStatusToEnglish(card.accountStatus),
+            documents: card.documents || {"contract": card.hasContract || false, "survey": card.hasSurvey || false, "passport": card.hasPassport || false},
+            account_status: this.translateAccountStatusToEnglish(card.accountStatus || 'Pending'),
             created_at: card.createdAt,
             updated_at: card.updatedAt || new Date().toISOString()
         };
