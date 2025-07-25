@@ -201,6 +201,8 @@ class ArchiveManager {
     }
 
     async checkArchiveStatus(card) {
+        console.log('🔍 Перевірка статусу архівної картки:', card);
+        
         const shouldStayInArchive = 
             card.accountStatus === 'Активний' &&
             card.cardStatus === 'Видана' &&
@@ -208,15 +210,33 @@ class ArchiveManager {
             card.documents?.survey &&
             card.documents?.passport;
 
+        console.log('📋 Умови архівування:', {
+            accountStatus: card.accountStatus,
+            cardStatus: card.cardStatus,
+            hasContract: card.documents?.contract,
+            hasSurvey: card.documents?.survey,
+            hasPassport: card.documents?.passport,
+            shouldStayInArchive
+        });
+
         if (!shouldStayInArchive) {
             try {
                 // Переміщуємо назад в активні картки через Supabase
                 await this.moveFromArchive(card);
-                this.showNotification('Картку переміщено назад в активні картки', 'info');
+                
+                // Оновлюємо локальний список
+                this.archivedCards = this.archivedCards.filter(c => c.id !== card.id);
+                
+                // Оновлюємо інтерфейс
+                await this.loadTable();
+                
+                this.showNotification('Картку переміщено назад в активні картки', 'success');
             } catch (error) {
                 console.error('❌ Помилка переміщення з архіву:', error);
                 this.showNotification('Помилка переміщення картки', 'error');
             }
+        } else {
+            console.log('✅ Картка залишається в архіві');
         }
     }
 
@@ -225,37 +245,48 @@ class ArchiveManager {
             throw new Error('База даних недоступна');
         }
 
+        console.log('🔄 Починаємо переміщення з архіву:', card);
+
         try {
             // Додаємо назад в активні картки
             const activeCard = {
-                ...card,
-                movedFromArchive: new Date().toISOString()
+                ...card
             };
             delete activeCard.archivedAt; // Видаляємо дату архівування
+            delete activeCard.movedFromArchive; // Видаляємо якщо є
 
+            console.log('📤 Підготовлена картка для активних:', activeCard);
+            
             const supabaseCard = dataService.formatCardForSupabase(activeCard);
+            console.log('📤 Форматована картка для Supabase:', supabaseCard);
+            
             const { error: insertError } = await supabaseClient
                 .from(SUPABASE_CONFIG.tables.cards)
                 .insert([supabaseCard]);
             
-            if (insertError) throw insertError;
+            if (insertError) {
+                console.error('❌ Помилка додавання в активні картки:', insertError);
+                throw insertError;
+            }
+
+            console.log('✅ Картку додано в активні, видаляємо з архіву...');
 
             // Видаляємо з архіву
             const { error: deleteError } = await supabaseClient
-                .from(SUPABASE_CONFIG.tables.archived_cards)
+                .from(SUPABASE_CONFIG.tables.archivedCards)
                 .delete()
                 .eq('id', card.id);
             
-            if (deleteError) throw deleteError;
+            if (deleteError) {
+                console.error('❌ Помилка видалення з архіву:', deleteError);
+                throw deleteError;
+            }
 
-            // Оновлюємо локальний масив
-            this.archivedCards = this.archivedCards.filter(c => c.id !== card.id);
-            await this.loadTable();
-            
+            console.log('✅ Картку успішно переміщено з архіву в активні');
             return true;
         } catch (error) {
             console.error('❌ Помилка переміщення з архіву:', error);
-            throw error;
+            throw new Error(`Не вдалося перемістити картку з архіву: ${error.message}`);
         }
     }
 
