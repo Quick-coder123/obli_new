@@ -121,6 +121,12 @@ class CardManager {
             processImportBtn.addEventListener('click', () => this.processImport());
         }
 
+        // Кнопка завантаження шаблону
+        const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
+        if (downloadTemplateBtn) {
+            downloadTemplateBtn.addEventListener('click', () => this.downloadTemplate());
+        }
+
         // Фільтри
         const filters = ['filterOrganization', 'filterMonth', 'filterAccountStatus'];
         filters.forEach(filterId => {
@@ -598,6 +604,12 @@ class CardManager {
                     continue;
                 }
 
+                // Додаткова валідація ІПН (має бути 10 цифр)
+                if (cardData.ipn && !/^\d{10}$/.test(cardData.ipn.toString().replace(/\s/g, ''))) {
+                    console.warn(`Рядок ${index + 1}: ІПН має неправильний формат: ${cardData.ipn}`);
+                    // Не зупиняємо імпорт, але попереджаємо
+                }
+
                 console.log(`Імпорт рядка ${index + 1}:`, cardData);
 
                 // Збереження в базу даних
@@ -631,17 +643,29 @@ class CardManager {
             return '';
         };
 
+        // Функція для перевірки чи є значення "ТАК"
+        const isYes = (value) => {
+            if (!value) return false;
+            const normalizedValue = value.toString().toUpperCase().trim();
+            return normalizedValue === 'ТАК' || 
+                   normalizedValue === 'YES' || 
+                   normalizedValue === 'ДА' || 
+                   normalizedValue === 'TRUE' || 
+                   normalizedValue === '1' ||
+                   normalizedValue === '+';
+        };
+
         return {
             fullName: findValue(['ПІБ', 'PIB', 'Full Name', 'Name', 'Имя']),
             ipn: findValue(['ІПН', 'IPN', 'Tax ID', 'ИНН']),
-            organization: findValue(['Організація', 'Organization', 'Организация', 'Company']),
+            organization: findValue(['Організація', 'Organization', 'Организация', 'Company']) || '',
             accountOpenDate: this.parseDate(findValue(['Дата відкриття', 'Open Date', 'Дата открытия', 'Date'])),
-            firstDepositDate: this.parseDate(findValue(['Дата 1-го зарах.', 'First Credit Date', 'Дата первого зач.', 'Credit Date'])),
-            accountStatus: findValue(['Статус рахунку', 'Account Status', 'Статус счета', 'Status']) || 'Очікує активацію',
-            comment: findValue(['Коментар', 'Comment', 'Комментарий', 'Notes']),
-            hasContract: false,
-            hasSurvey: false,
-            hasPassport: false,
+            firstDepositDate: this.parseDate(findValue(['Дата 1-го зарахування', 'Дата 1-го зарах.', 'First Credit Date', 'Дата первого зач.', 'Credit Date'])),
+            accountStatus: 'Очікує активацію', // За замовчуванням
+            comment: findValue(['Коментар', 'Comment', 'Комментарий', 'Notes']) || '',
+            hasPassport: isYes(findValue(['Паспорт', 'Passport', 'Паспорт'])),
+            hasSurvey: isYes(findValue(['Опитувальник', 'Survey', 'Опросник', 'Анкета'])),
+            hasContract: isYes(findValue(['Договір', 'Contract', 'Договор'])),
             cardStatus: 'Manufacturing'
         };
     }
@@ -709,6 +733,74 @@ class CardManager {
         
         console.warn('Не вдалося парсити дату:', dateValue);
         return null;
+    }
+
+    // Завантаження шаблону Excel
+    downloadTemplate() {
+        try {
+            // Створюємо приклад даних для шаблону
+            const templateData = [
+                {
+                    'ПІБ': 'Іванов Іван Іванович',
+                    'ІПН': '1234567890',
+                    'Організація': 'ТОВ "Приклад"',
+                    'Дата відкриття': '2024-01-15',
+                    'Дата 1-го зарахування': '2024-01-20',
+                    'Паспорт': 'ТАК',
+                    'Опитувальник': 'ТАК',
+                    'Договір': 'НІ'
+                },
+                {
+                    'ПІБ': 'Петренко Марія Олександрівна',
+                    'ІПН': '0987654321',
+                    'Організація': 'ФОП Петренко',
+                    'Дата відкриття': '2024-01-16',
+                    'Дата 1-го зарахування': '',
+                    'Паспорт': 'ТАК',
+                    'Опитувальник': 'НІ',
+                    'Договір': 'ТАК'
+                }
+            ];
+
+            // Створюємо Excel файл
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.json_to_sheet(templateData);
+            
+            // Додаємо стилі до заголовків (робимо їх жирними)
+            const headerCells = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1'];
+            headerCells.forEach(cell => {
+                if (worksheet[cell]) {
+                    worksheet[cell].s = {
+                        font: { bold: true },
+                        fill: { bgColor: { indexed: 64 }, fgColor: { rgb: "FFCCCCCC" } }
+                    };
+                }
+            });
+
+            // Налаштовуємо ширину колонок
+            worksheet['!cols'] = [
+                { wch: 25 }, // ПІБ
+                { wch: 12 }, // ІПН
+                { wch: 20 }, // Organisation
+                { wch: 15 }, // Дата відкриття
+                { wch: 18 }, // Дата 1-го зарахування
+                { wch: 10 }, // Паспорт
+                { wch: 15 }, // Опитувальник
+                { wch: 10 }  // Договір
+            ];
+
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Шаблон імпорту");
+            
+            // Завантажуємо файл
+            const filename = `Шаблон_імпорту_клієнтів.xlsx`;
+            XLSX.writeFile(workbook, filename);
+            
+            this.showNotification('✅ Шаблон завантажено успішно!', 'success');
+            
+        } catch (error) {
+            console.error('❌ Помилка створення шаблону:', error);
+            this.showNotification('❌ Помилка при створенні шаблону', 'error');
+        }
     }
 
     // Показати повідомлення з різними типами

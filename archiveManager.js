@@ -158,12 +158,23 @@ class ArchiveManager {
         this.checkArchiveStatus(updatedCard);
     }
 
-    deleteCard(cardId) {
+    async deleteCard(cardId) {
         if (confirm('Ви впевнені, що хочете видалити цю картку з архіву?')) {
-            this.archivedCards = this.archivedCards.filter(c => c.id !== cardId);
-            this.saveArchivedCards();
-            this.loadTable();
-            this.populateFilters();
+            try {
+                // Видаляємо з бази даних
+                await dataService.deleteArchivedCard(cardId);
+                
+                // Видаляємо з локального масиву
+                this.archivedCards = this.archivedCards.filter(c => c.id !== cardId);
+                
+                // Оновлюємо інтерфейс
+                await this.loadTable();
+                this.showNotification('Картку видалено з архіву', 'success');
+                
+            } catch (error) {
+                console.error('❌ Помилка видалення картки з архіву:', error);
+                this.showNotification('Помилка видалення картки', 'error');
+            }
         }
     }
 
@@ -382,6 +393,41 @@ class ArchiveManager {
 
     applyFilters() {
         this.loadTable();
+    }
+
+    // Показати повідомлення
+    showNotification(message, type = 'info') {
+        const colors = {
+            'success': 'bg-green-500',
+            'error': 'bg-red-500',
+            'info': 'bg-blue-500',
+            'warning': 'bg-yellow-500'
+        };
+
+        const icons = {
+            'success': '✅',
+            'error': '❌',
+            'info': 'ℹ️',
+            'warning': '⚠️'
+        };
+
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 ${colors[type]} text-white p-4 rounded-lg shadow-lg z-50 max-w-sm`;
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <span class="mr-2">${icons[type]}</span>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Видалити повідомлення через 3 секунди
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 3000);
     }
 
     // Метод для отримання архівних карток для звітів

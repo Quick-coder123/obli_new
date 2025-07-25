@@ -161,6 +161,26 @@ class DataService {
         }
     }
 
+    async deleteArchivedCard(cardId) {
+        if (!this.supabaseReady) {
+            throw new Error('База даних недоступна');
+        }
+
+        try {
+            const { error } = await supabaseClient
+                .from(SUPABASE_CONFIG.tables.archivedCards)
+                .delete()
+                .eq('id', cardId);
+            
+            if (error) throw error;
+            console.log('✅ Архівну картку видалено успішно');
+            return true;
+        } catch (error) {
+            console.error('❌ Помилка видалення архівної картки:', error);
+            throw new Error('Не вдалося видалити картку з архіву');
+        }
+    }
+
     // Методи для роботи з архівними картками
     async getArchivedCards() {
         if (!this.supabaseReady) {
