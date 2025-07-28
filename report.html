@@ -55,17 +55,46 @@
             </div>
             <div class="px-6 py-4">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200 report-matrix-table">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Місяць</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Організація</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Кількість карток</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider org-column">Організація</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Січень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Лютий</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Березень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Квітень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Травень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Червень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Липень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Серпень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Вересень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Жовтень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Листопад</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Грудень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider total-column">Всього</th>
                             </tr>
                         </thead>
                         <tbody id="openedCardsTableBody" class="bg-white divide-y divide-gray-200">
                             <!-- Дані будуть завантажені динамічно -->
                         </tbody>
+                        <tfoot class="bg-gray-100">
+                            <tr>
+                                <td class="px-6 py-3 text-sm font-medium text-gray-900">Всього по місяцях</td>
+                                <td id="monthTotal1" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;">0</td>
+                                <td id="monthTotal2" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;">0</td>
+                                <td id="monthTotal3" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;">0</td>
+                                <td id="monthTotal4" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;">0</td>
+                                <td id="monthTotal5" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;">0</td>
+                                <td id="monthTotal6" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;">0</td>
+                                <td id="monthTotal7" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;">0</td>
+                                <td id="monthTotal8" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;">0</td>
+                                <td id="monthTotal9" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;">0</td>
+                                <td id="monthTotal10" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;">0</td>
+                                <td id="monthTotal11" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;">0</td>
+                                <td id="monthTotal12" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;">0</td>
+                                <td id="grandTotal" class="px-6 py-3 text-sm font-medium text-gray-900 total-column" style="text-align: center;">0</td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
@@ -86,20 +115,44 @@
             </div>
             <div class="px-6 py-4">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200 report-matrix-table">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Місяць</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Організація</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Кількість активних</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider org-column">Організація</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Січень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Лютий</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Березень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Квітень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Травень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Червень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Липень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Серпень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Вересень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Жовтень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Листопад</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider month-column">Грудень</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider total-column">Всього</th>
                             </tr>
                         </thead>
                         <tbody id="activeAccountsTableBody" class="bg-white divide-y divide-gray-200">
                             <!-- Дані будуть завантажені динамічно -->
                         </tbody>
                         <tfoot class="bg-gray-50">
-                            <tr id="activeAccountsTotal">
-                                <!-- Підсумкові значення -->
+                            <tr>
+                                <td class="px-6 py-3 text-left text-sm font-medium text-gray-900">Всього по місяцях</td>
+                                <td id="activeMonth1" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;"></td>
+                                <td id="activeMonth2" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;"></td>
+                                <td id="activeMonth3" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;"></td>
+                                <td id="activeMonth4" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;"></td>
+                                <td id="activeMonth5" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;"></td>
+                                <td id="activeMonth6" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;"></td>
+                                <td id="activeMonth7" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;"></td>
+                                <td id="activeMonth8" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;"></td>
+                                <td id="activeMonth9" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;"></td>
+                                <td id="activeMonth10" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;"></td>
+                                <td id="activeMonth11" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;"></td>
+                                <td id="activeMonth12" class="px-6 py-3 text-sm font-medium text-gray-900" style="text-align: center;"></td>
+                                <td id="activeGrandTotal" class="px-6 py-3 text-sm font-medium text-gray-900 bg-blue-100" style="text-align: center;"></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -107,7 +160,7 @@
             </div>
         </div>
 
-        <!-- Розділ 3: Активні / Очікує активації -->
+        <!-- Розділ 3: Статус рахунків по організаціях -->
         <div class="bg-white shadow rounded-lg">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h3 class="text-lg font-medium text-gray-900">Статус рахунків по організаціях</h3>
@@ -119,17 +172,20 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Організація</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Активних</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Очікують активації</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Всього</th>
+                                <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider" style="text-align: center;">Активних</th>
+                                <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider" style="text-align: center;">Очікують активації</th>
+                                <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-blue-50" style="text-align: center;">Всього</th>
                             </tr>
                         </thead>
-                        <tbody id="statusTableBody" class="bg-white divide-y divide-gray-200">
+                        <tbody id="statusTableBody" class="bg-white divide-y divide-gray-200" style="text-align: center;">
                             <!-- Дані будуть завантажені динамічно -->
                         </tbody>
-                        <tfoot class="bg-gray-50">
-                            <tr id="statusTotal">
-                                <!-- Підсумкові значення -->
+                        <tfoot class="bg-gray-100">
+                            <tr>
+                                <td class="px-6 py-3 text-sm font-medium text-gray-900">Всього:</td>
+                                <td id="statusTotalActive" class="px-6 py-3 text-sm font-medium text-green-600" style="text-align: center;">0</td>
+                                <td id="statusTotalPending" class="px-6 py-3 text-sm font-medium text-yellow-600" style="text-align: center;">0</td>
+                                <td id="statusGrandTotal" class="px-6 py-3 text-sm font-medium text-gray-900 bg-blue-50" style="text-align: center;">0</td>
                             </tr>
                         </tfoot>
                     </table>

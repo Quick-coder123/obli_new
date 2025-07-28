@@ -1,0 +1,637 @@
+// Глобальна змінна для сервісу даних
+let dataService;
+
+// Генератор звітів - логіка для створення звітів по картках
+class ReportGenerator {
+    constructor() {
+        this.allCards = [];
+        this.init();
+    }
+
+    async init() {
+        try {
+            // Ініціалізуємо сервіс даних
+            if (!dataService) {
+         row.innerHTML = rowHTML;
+        tbody.appendChild(row);
+    }
+
+    async processActiveAccountsData(year) {
+        const organizationData = {};
+        
+        try {
+            console.log('📥 Завантажуємо дані з бази для активних рахунків...');
+            
+            // Завантажуємо свіжі дані з активних карток та архіву
+            const activeCards = await dataService.getCards();
+            const archivedCards = await dataService.getArchivedCards();
+            
+            console.log('📊 Активних карток:', activeCards?.length || 0);
+            console.log('📊 Архівних карток:', archivedCards?.length || 0);
+            
+            // Об'єднуємо всі картки
+            const allCards = [...(activeCards || []), ...(archivedCards || [])];
+            
+            console.log(`🔍 Обробляємо ${allCards.length} карток для активних рахунків у році ${year}`);
+            
+            if (allCards.length > 0) {
+                console.log('📝 Приклад картки для активних рахунків:', allCards[0]);
+            }
+            
+            allCards.forEach((card, index) => {
+                // Перевіряємо різні можливі поля дат першого зарахування
+                let depositDate = null;
+                
+                if (card.firstDepositDate) {
+                    depositDate = new Date(card.firstDepositDate);
+                } else if (card.first_deposit_date) {
+                    depositDate = new Date(card.first_deposit_date);
+                } else if (card.dateFirstDeposit) {
+                    depositDate = new Date(card.dateFirstDeposit);
+                } else if (card.activationDate) {
+                    depositDate = new Date(card.activationDate);
+                }
+                
+                if (index < 3) {
+                    console.log(`📅 Картка ${index + 1} для активних рахунків:`, {
+                        org: card.organization,
+                        firstDepositDate: card.firstDepositDate,
+                        first_deposit_date: card.first_deposit_date,
+                        dateFirstDeposit: card.dateFirstDeposit,
+                        activationDate: card.activationDate,
+                        parsedDate: depositDate
+                    });
+                }
+                
+                // Перевіряємо, чи дата належить до вибраного року
+                if (depositDate && !isNaN(depositDate.getTime()) && depositDate.getFullYear() === year) {
+                    const month = depositDate.getMonth(); // 0-11
+                    const org = card.organization || 'Невідома організація';
+                    
+                    // Ініціалізуємо організацію, якщо її ще немає
+                    if (!organizationData[org]) {
+                        organizationData[org] = Array(12).fill(0);
+                    }
+                    
+                    // Збільшуємо лічильник для цього місяця
+                    organizationData[org][month]++;
+                    
+                    console.log(`✅ Додано активний рахунок: ${org} - ${depositDate.toLocaleDateString()} (місяць ${month + 1})`);
+                }
+            });
+            
+            console.log('🎯 Результат обробки активних рахунків:', organizationData);
+            
+        } catch (error) {
+            console.error('❌ Помилка при обробці даних активних рахунків:', error);
+        }
+        
+        return organizationData;
+    }
+
+    addTestActiveRow(tbody, testData) {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50 bg-yellow-50';
+        
+        let rowHTML = `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${testData.org}</td>`;
+        
+        // Додаємо комірки для кожного місяця
+        for (let month = 0; month < 12; month++) {
+            const count = (month === testData.month) ? testData.count : 0;
+            rowHTML += `<td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                ${count > 0 ? count : ''}
+            </td>`;
+        }
+        
+        // Додаємо колонку "Всього"
+        rowHTML += `<td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 bg-blue-50">
+            ${testData.count}
+        </td>`;
+        
+        row.innerHTML = rowHTML;
+        tbody.appendChild(row);
+    }
+
+    generateActiveAccountsReport() {          dataService = new DataService();
+                await dataService.init();
+            }
+            
+            this.bindEvents();
+            await this.loadData();
+            this.populateYearFilters();
+            this.generateAllReports();
+        } catch (error) {
+            console.error('❌ Помилка ініціалізації ReportGenerator:', error);
+        }
+    }
+    
+    async loadData() {
+        try {
+            // Завантажуємо активні та архівні картки
+            const activeCards = await dataService.getCards();
+            const archivedCards = await dataService.getArchivedCards();
+            
+            // Об'єднуємо всі картки
+            this.allCards = [...activeCards, ...archivedCards];
+            
+            console.log('✅ Дані для звітів завантажено:', this.allCards.length, 'карток');
+            console.log('Приклад картки:', this.allCards[0]);
+        } catch (error) {
+            console.error('❌ Помилка завантаження даних для звітів:', error);
+            this.allCards = [];
+        }
+    }
+
+    bindEvents() {
+        // Кнопка оновлення відкритих карток
+        const refreshBtn = document.getElementById('refreshOpenedCards');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', async () => {
+                await this.loadData();
+                await this.generateOpenedCardsReport();
+            });
+        }
+
+        // Кнопка оновлення активних рахунків
+        const refreshActiveBtn = document.getElementById('refreshActiveAccounts');
+        if (refreshActiveBtn) {
+            refreshActiveBtn.addEventListener('click', async () => {
+                await this.loadData();
+                await this.generateActiveAccountsReport();
+            });
+        }
+
+        // Фільтри по роках
+        const openedCardsYearFilter = document.getElementById('openedCardsYear');
+        const activeAccountsYearFilter = document.getElementById('activeAccountsYear');
+        
+        if (openedCardsYearFilter) {
+            openedCardsYearFilter.addEventListener('change', async () => {
+                await this.generateOpenedCardsReport();
+            });
+        }
+        
+        if (activeAccountsYearFilter) {
+            activeAccountsYearFilter.addEventListener('change', async () => {
+                await this.generateActiveAccountsReport();
+            });
+        }
+    }
+
+    loadCards() {
+        const saved = localStorage.getItem('cards');
+        return saved ? JSON.parse(saved) : [];
+    }
+
+    loadArchivedCards() {
+        const saved = localStorage.getItem('archivedCards');
+        return saved ? JSON.parse(saved) : [];
+    }
+
+    populateYearFilters() {
+        const years = this.getAvailableYears();
+        const currentYear = new Date().getFullYear();
+        
+        // Заповнити фільтр для відкритих карток
+        const openedCardsYearSelect = document.getElementById('openedCardsYear');
+        if (openedCardsYearSelect) {
+            this.populateYearSelect(openedCardsYearSelect, years, currentYear);
+        }
+        
+        // Заповнити фільтр для активних рахунків
+        const activeAccountsYearSelect = document.getElementById('activeAccountsYear');
+        if (activeAccountsYearSelect) {
+            this.populateYearSelect(activeAccountsYearSelect, years, currentYear);
+        }
+    }
+
+    populateYearSelect(select, years, defaultYear) {
+        select.innerHTML = '';
+        
+        years.forEach(year => {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            if (year === defaultYear) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+    }
+
+    getAvailableYears() {
+        const years = new Set();
+        
+        this.allCards.forEach(card => {
+            if (card.accountOpenDate) {
+                const year = new Date(card.accountOpenDate).getFullYear();
+                years.add(year);
+            }
+            if (card.firstDepositDate) {
+                const year = new Date(card.firstDepositDate).getFullYear();
+                years.add(year);
+            }
+        });
+        
+        // Додати поточний рік, якщо його немає
+        years.add(new Date().getFullYear());
+        
+        return Array.from(years).sort((a, b) => b - a); // Сортування по спаданню
+    }
+
+    async generateAllReports() {
+        console.log('🚀 Генеруємо всі звіти...');
+        await this.generateOpenedCardsReport();
+        this.generateActiveAccountsReport();
+        this.generateStatusReport();
+    }
+
+    async generateOpenedCardsReport() {
+        const selectedYear = parseInt(document.getElementById('openedCardsYear')?.value) || new Date().getFullYear();
+        const tbody = document.getElementById('openedCardsTableBody');
+        
+        if (!tbody) return;
+
+        console.log('🔄 Генеруємо звіт відкритих карток для року:', selectedYear);
+        
+        // Збираємо дані по організаціях та місяцях
+        const reportData = await this.processOpenedCardsData(selectedYear);
+        const monthTotals = Array(12).fill(0);
+        let grandTotal = 0;
+
+        console.log('📊 Дані для звіту:', reportData);
+
+        tbody.innerHTML = '';
+
+        if (Object.keys(reportData).length === 0) {
+            console.log('⚠️ Немає даних для відображення. Додаємо тестові дані для демонстрації...');
+            
+            // Додаємо тестові дані для демонстрації структури
+            const testData = {
+                'Січень': { org: 'ТОВ "Приклад"', month: 0, count: 1 },
+                'Лютий': { org: 'ФОП Петренко', month: 1, count: 1 }
+            };
+            
+            testData['Січень'] && this.addTestRow(tbody, testData['Січень']);
+            testData['Лютий'] && this.addTestRow(tbody, testData['Лютий']);
+            
+            // Показуємо повідомлення
+            const messageRow = document.createElement('tr');
+            messageRow.innerHTML = `
+                <td colspan="14" class="px-6 py-4 text-center text-yellow-600 bg-yellow-50">
+                    Показано тестові дані. Немає справжніх даних за ${selectedYear} рік.
+                    <br>Додайте картки через головну сторінку для відображення реальних звітів.
+                </td>
+            `;
+            tbody.appendChild(messageRow);
+            return;
+        }
+
+        // Генеруємо рядки для кожної організації
+        Object.keys(reportData).sort().forEach(org => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+            
+            let rowTotal = 0;
+            let rowHTML = `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${org}</td>`;
+            
+            // Додаємо комірки для кожного місяця
+            for (let month = 0; month < 12; month++) {
+                const count = reportData[org][month] || 0;
+                rowTotal += count;
+                monthTotals[month] += count;
+                grandTotal += count;
+                
+                rowHTML += `<td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                    ${count > 0 ? count : ''}
+                </td>`;
+            }
+            
+            // Додаємо колонку "Всього" для організації
+            rowHTML += `<td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 bg-blue-50">
+                ${rowTotal > 0 ? rowTotal : ''}
+            </td>`;
+            
+            row.innerHTML = rowHTML;
+            tbody.appendChild(row);
+        });
+
+        // Оновлюємо підсумки по місяцях у футері
+        for (let i = 1; i <= 12; i++) {
+            const totalElement = document.getElementById(`monthTotal${i}`);
+            if (totalElement) {
+                totalElement.textContent = monthTotals[i - 1] > 0 ? monthTotals[i - 1] : '';
+            }
+        }
+        
+        // Оновлюємо загальний підсумок
+        const grandTotalElement = document.getElementById('grandTotal');
+        if (grandTotalElement) {
+            grandTotalElement.textContent = grandTotal > 0 ? grandTotal : '';
+        }
+    }
+
+    async processOpenedCardsData(year) {
+        const organizationData = {};
+        
+        try {
+            console.log('📥 Завантажуємо дані з бази...');
+            
+            // Завантажуємо свіжі дані з активних карток та архіву
+            const activeCards = await dataService.getCards();
+            const archivedCards = await dataService.getArchivedCards();
+            
+            console.log('📊 Активних карток:', activeCards?.length || 0);
+            console.log('📊 Архівних карток:', archivedCards?.length || 0);
+            
+            // Об'єднуємо всі картки
+            const allCards = [...(activeCards || []), ...(archivedCards || [])];
+            
+            console.log(`🔍 Обробляємо ${allCards.length} карток для року ${year}`);
+            
+            if (allCards.length > 0) {
+                console.log('📝 Приклад картки:', allCards[0]);
+            }
+            
+            allCards.forEach((card, index) => {
+                // Перевіряємо різні можливі поля дат відкриття
+                let openDate = null;
+                
+                if (card.accountOpenDate) {
+                    openDate = new Date(card.accountOpenDate);
+                } else if (card.account_open_date) {
+                    openDate = new Date(card.account_open_date);
+                } else if (card.dateOpened) {
+                    openDate = new Date(card.dateOpened);
+                } else if (card.created_at) {
+                    openDate = new Date(card.created_at);
+                }
+                
+                if (index < 3) {
+                    console.log(`📅 Картка ${index + 1}:`, {
+                        org: card.organization,
+                        accountOpenDate: card.accountOpenDate,
+                        account_open_date: card.account_open_date,
+                        dateOpened: card.dateOpened,
+                        created_at: card.created_at,
+                        parsedDate: openDate
+                    });
+                }
+                
+                // Перевіряємо, чи дата належить до вибраного року
+                if (openDate && !isNaN(openDate.getTime()) && openDate.getFullYear() === year) {
+                    const month = openDate.getMonth(); // 0-11
+                    const org = card.organization || 'Невідома організація';
+                    
+                    // Ініціалізуємо організацію, якщо її ще немає
+                    if (!organizationData[org]) {
+                        organizationData[org] = Array(12).fill(0);
+                    }
+                    
+                    // Збільшуємо лічильник для цього місяця
+                    organizationData[org][month]++;
+                    
+                    console.log(`✅ Додано картку: ${org} - ${openDate.toLocaleDateString()} (місяць ${month + 1})`);
+                }
+            });
+            
+            console.log('🎯 Результат обробки:', organizationData);
+            
+        } catch (error) {
+            console.error('❌ Помилка при обробці даних відкритих карток:', error);
+        }
+        
+        return organizationData;
+    }
+
+    addTestRow(tbody, testData) {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50 bg-yellow-50';
+        
+        let rowHTML = `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${testData.org}</td>`;
+        
+        // Додаємо комірки для кожного місяця
+        for (let month = 0; month < 12; month++) {
+            const count = (month === testData.month) ? testData.count : 0;
+            rowHTML += `<td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                ${count > 0 ? count : ''}
+            </td>`;
+        }
+        
+        // Додаємо колонку "Всього"
+        rowHTML += `<td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 bg-blue-50">
+            ${testData.count}
+        </td>`;
+        
+        row.innerHTML = rowHTML;
+        tbody.appendChild(row);
+    }
+
+    async generateActiveAccountsReport() {
+        const selectedYear = parseInt(document.getElementById('activeAccountsYear')?.value) || new Date().getFullYear();
+        const tbody = document.getElementById('activeAccountsTableBody');
+        
+        if (!tbody) return;
+
+        console.log('🔄 Генеруємо звіт активних рахунків для року:', selectedYear);
+        
+        // Збираємо дані по організаціях та місяцях для першого зарахування
+        const reportData = await this.processActiveAccountsData(selectedYear);
+        const monthTotals = Array(12).fill(0);
+        let grandTotal = 0;
+
+        console.log('📊 Дані для звіту активних рахунків:', reportData);
+
+        tbody.innerHTML = '';
+
+        if (Object.keys(reportData).length === 0) {
+            console.log('⚠️ Немає даних активних рахунків. Додаємо тестові дані для демонстрації...');
+            
+            // Додаємо тестові дані для демонстрації структури
+            const testData = {
+                'Січень': { org: 'ТОВ "Приклад"', month: 0, count: 1 },
+                'Березень': { org: 'ФОП Петренко', month: 2, count: 1 }
+            };
+            
+            testData['Січень'] && this.addTestActiveRow(tbody, testData['Січень']);
+            testData['Березень'] && this.addTestActiveRow(tbody, testData['Березень']);
+            
+            // Показуємо повідомлення
+            const messageRow = document.createElement('tr');
+            messageRow.innerHTML = `
+                <td colspan="14" class="px-6 py-4 text-center text-yellow-600 bg-yellow-50">
+                    Показано тестові дані. Немає справжніх даних активних рахунків за ${selectedYear} рік.
+                    <br>Додайте дату першого зарахування до карток для відображення реальних звітів.
+                </td>
+            `;
+            tbody.appendChild(messageRow);
+            return;
+        }
+
+        // Генеруємо рядки для кожної організації
+        Object.keys(reportData).sort().forEach(org => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+            
+            let rowTotal = 0;
+            let rowHTML = `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${org}</td>`;
+            
+            // Додаємо комірки для кожного місяця
+            for (let month = 0; month < 12; month++) {
+                const count = reportData[org][month] || 0;
+                rowTotal += count;
+                monthTotals[month] += count;
+                grandTotal += count;
+                
+                rowHTML += `<td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                    ${count > 0 ? count : ''}
+                </td>`;
+            }
+            
+            // Додаємо колонку "Всього" для організації
+            rowHTML += `<td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 bg-blue-50">
+                ${rowTotal > 0 ? rowTotal : ''}
+            </td>`;
+            
+            row.innerHTML = rowHTML;
+            tbody.appendChild(row);
+        });
+
+        // Оновлюємо підсумки по місяцях у футері
+        for (let i = 1; i <= 12; i++) {
+            const totalElement = document.getElementById(`activeMonth${i}`);
+            if (totalElement) {
+                totalElement.textContent = monthTotals[i - 1] > 0 ? monthTotals[i - 1] : '';
+            }
+        }
+        
+        // Оновлюємо загальний підсумок
+        const grandTotalElement = document.getElementById('activeGrandTotal');
+        if (grandTotalElement) {
+            grandTotalElement.textContent = grandTotal > 0 ? grandTotal : '';
+        }
+    }
+
+    getActiveAccountsData(year) {
+        const monthNames = [
+            'Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень',
+            'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень'
+        ];
+
+        const data = {};
+        
+        this.allCards
+            .filter(card => 
+                card.firstDepositDate && 
+                new Date(card.firstDepositDate).getFullYear() === year
+            )
+            .forEach(card => {
+                const month = new Date(card.firstDepositDate).getMonth();
+                const monthName = monthNames[month];
+                const org = card.organization;
+                
+                const key = `${monthName}-${org}`;
+                if (!data[key]) {
+                    data[key] = {
+                        month: monthName,
+                        organization: org,
+                        count: 0
+                    };
+                }
+                data[key].count++;
+            });
+
+        return Object.values(data).sort((a, b) => {
+            const monthA = monthNames.indexOf(a.month);
+            const monthB = monthNames.indexOf(b.month);
+            if (monthA !== monthB) return monthA - monthB;
+            return a.organization.localeCompare(b.organization);
+        });
+    }
+
+    generateStatusReport() {
+        const tbody = document.getElementById('statusTableBody');
+        const tfoot = document.getElementById('statusTotal');
+        
+        if (!tbody) return;
+
+        const reportData = this.getStatusReportData();
+        tbody.innerHTML = '';
+
+        if (reportData.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                        Немає даних для відображення
+                    </td>
+                </tr>
+            `;
+            if (tfoot) tfoot.innerHTML = '';
+            return;
+        }
+
+        // Створити рядки таблиці
+        reportData.forEach(item => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+            
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.organization}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">${item.active}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-yellow-600">${item.pending}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.total}</td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+
+        // Створити підсумковий рядок
+        if (tfoot) {
+            const totalActive = reportData.reduce((sum, item) => sum + item.active, 0);
+            const totalPending = reportData.reduce((sum, item) => sum + item.pending, 0);
+            const grandTotal = totalActive + totalPending;
+            
+            tfoot.innerHTML = `
+                <tr class="font-medium">
+                    <td class="px-6 py-3 text-left text-sm font-medium text-gray-900">Всього:</td>
+                    <td class="px-6 py-3 text-left text-sm font-medium text-green-600">${totalActive}</td>
+                    <td class="px-6 py-3 text-left text-sm font-medium text-yellow-600">${totalPending}</td>
+                    <td class="px-6 py-3 text-left text-sm font-medium text-gray-900">${grandTotal}</td>
+                </tr>
+            `;
+        }
+    }
+
+    getStatusReportData() {
+        const data = {};
+        
+        this.allCards.forEach(card => {
+            const org = card.organization;
+            
+            if (!data[org]) {
+                data[org] = {
+                    organization: org,
+                    active: 0,
+                    pending: 0,
+                    total: 0
+                };
+            }
+            
+            if (card.accountStatus === 'Активний') {
+                data[org].active++;
+            } else if (card.accountStatus === 'Очікує активацію') {
+                data[org].pending++;
+            }
+            
+            data[org].total++;
+        });
+
+        return Object.values(data).sort((a, b) => a.organization.localeCompare(b.organization));
+    }
+}
+
+// Ініціалізація при завантаженні сторінки
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Ініціалізація ReportGenerator');
+    new ReportGenerator();
+});

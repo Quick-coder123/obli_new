@@ -4,6 +4,87 @@
     background-color: #f8fafc;
 }
 
+/* Стилі для матричних таблиць звітів */
+.report-matrix-table {
+    font-size: 0.875rem;
+}
+
+.report-matrix-table th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 0.5rem;
+}
+
+.report-matrix-table td {
+    padding: 0.75rem 0.5rem;
+}
+
+/* ПРИНУДИТЕЛЬНОЕ ЦЕНТРИРОВАНИЕ ЦИФР - МАКСИМАЛЬНАЯ СИЛА */
+.report-matrix-table td[style*="text-align: center"] {
+    text-align: center !important;
+    vertical-align: middle !important;
+    justify-content: center !important;
+    align-items: center !important;
+    display: table-cell !important;
+}
+
+.report-matrix-table .flex.flex-col.items-center {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    width: 100% !important;
+}
+
+.report-matrix-table td {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+.report-matrix-table .inline-flex {
+    margin: 0 auto !important;
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* Переопределение всех возможных стилей */
+.report-matrix-table * {
+    text-align: center !important;
+}
+
+.report-matrix-table td:nth-child(2),
+.report-matrix-table td:nth-child(3),
+.report-matrix-table td:nth-child(4) {
+    text-align: center !important;
+    vertical-align: middle !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+.report-matrix-table .org-column {
+    min-width: 200px;
+    font-weight: 500;
+}
+
+.report-matrix-table .month-column {
+    min-width: 80px;
+    text-align: center;
+}
+
+.report-matrix-table .total-column {
+    font-weight: 600;
+    background-color: #dbeafe;
+}
+
+.report-matrix-table tfoot {
+    background-color: #f3f4f6;
+    font-weight: 600;
+}
+
 .status-badge {
     display: inline-flex;
     align-items: center;

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест даних</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Тест підключення до даних</h1>
+    <div id="results"></div>
+
+    <script src="supabaseConfig.js"></script>
+    <script src="dataService.js"></script>
+    <script>
+        async function testData() {
+            const results = document.getElementById('results');
+            
+            try {
+                results.innerHTML = '<p>🔄 Ініціалізуємо сервіс даних...</p>';
+                
+                const dataService = new DataService();
+                await dataService.init();
+                
+                results.innerHTML += '<p>✅ Сервіс даних ініціалізовано</p>';
+                
+                const activeCards = await dataService.getCards();
+                results.innerHTML += `<p>📊 Активних карток: ${activeCards?.length || 0}</p>`;
+                
+                if (activeCards && activeCards.length > 0) {
+                    results.innerHTML += `<p>📝 Приклад активної картки:</p><pre>${JSON.stringify(activeCards[0], null, 2)}</pre>`;
+                }
+                
+                const archivedCards = await dataService.getArchivedCards();
+                results.innerHTML += `<p>📁 Архівних карток: ${archivedCards?.length || 0}</p>`;
+                
+                if (archivedCards && archivedCards.length > 0) {
+                    results.innerHTML += `<p>📝 Приклад архівної картки:</p><pre>${JSON.stringify(archivedCards[0], null, 2)}</pre>`;
+                }
+                
+            } catch (error) {
+                results.innerHTML += `<p>❌ Помилка: ${error.message}</p>`;
+                console.error('Помилка тесту:', error);
+            }
+        }
+        
+        // Запускаємо тест при завантаженні сторінки
+        window.addEventListener('load', testData);
+    </script>
+</body>
+</html>
